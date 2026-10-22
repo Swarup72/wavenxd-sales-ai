@@ -1,0 +1,22 @@
+/* ==========================================================================
+   WaveNxD AI Sales Representative - Root Stylesheet
+   Imports modular design system, layout, components, and customer views
+   ========================================================================== */
+
+@import "./tokens.css";
+@import "./base.css";
+@import "./layout.css";
+@import "./components.css";
+@import "./forms.css";
+@import "./modals.css";
+@import "./customer.css";
+@import "./conversations.css";
+@import "./consultation-summary.css";
+@import "./technical-analysis.css";
+@import "./responsive.css";
+
+/* Compatibility aliases for automated tests */
+:root {
+  --accent-cyan: #0284C7;
+  --accent-cyan-dark: #0369A1;
+}

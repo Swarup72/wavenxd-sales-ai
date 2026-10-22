@@ -1,0 +1,246 @@
+/* ==========================================================================
+   WaveNxD AI Sales Representative - Modals & Drawers Architecture
+   Centered, accessible dialogs with independent scrolling and prominent close controls
+   ========================================================================== */
+
+/* Modal Backdrop Overlay */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.modal-overlay.active,
+.modal-overlay[style*="display: flex"],
+.modal-overlay[style*="display: block"] {
+  display: flex !important;
+}
+
+/* Modal Dialog Box */
+.modal-dialog {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 640px;
+  max-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  animation: modal-appear 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 1001;
+}
+
+.modal-dialog.modal-lg {
+  max-width: 820px;
+}
+
+.modal-dialog.modal-xl {
+  max-width: 1040px;
+}
+
+@keyframes modal-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Modal Header */
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.modal-header p {
+  font-size: 0.78125rem;
+  color: var(--text-muted);
+}
+
+/* Close Button (Prominent, High Contrast & Accessible) */
+.modal-close {
+  background: var(--bg-surface-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.modal-close:hover {
+  background: var(--error-bg);
+  border-color: var(--status-nomatch-border);
+  color: var(--error);
+}
+
+.modal-close:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+
+/* Modal Body (Scrollable Container) */
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* Modal Footer */
+.modal-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-surface-secondary);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.modal-footer .btn-primary,
+.modal-footer .btn-secondary {
+  width: auto;
+  min-width: 100px;
+  padding: 8px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+.modal-footer .btn-primary {
+  box-shadow: var(--shadow-sm);
+}
+
+/* Form controls within modal */
+.modal-body .form-group {
+  margin-bottom: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modal-body .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.modal-body input,
+.modal-body select,
+.modal-body textarea {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Drawer Component (Company Catalog Drawer) */
+.drawer-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.drawer-overlay.active,
+.drawer-overlay[style*="display: flex"],
+.drawer-overlay[style*="display: block"] {
+  display: flex !important;
+}
+
+.drawer-content {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 760px;
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  animation: modal-appear 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.drawer-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+
+.drawer-header h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.drawer-header p {
+  font-size: 0.78125rem;
+  color: var(--text-muted);
+}
+
+.drawer-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg-surface-secondary);
+}

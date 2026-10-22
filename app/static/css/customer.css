@@ -1,0 +1,94 @@
+/* ==========================================================================
+   WaveNxD AI Sales Representative - Customer Workspace Styles
+   ========================================================================== */
+
+/* Authorized Products Drawer Card */
+.btn-catalog-drawer {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-xs);
+}
+
+.btn-catalog-drawer:hover {
+  background: var(--brand-blue-subtle);
+  border-color: var(--brand-blue-border);
+  color: var(--brand-blue);
+}
+
+.drawer-prod-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.drawer-prod-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.drawer-prod-name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.drawer-prod-key {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--brand-blue);
+  background: var(--brand-blue-subtle);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.drawer-prod-desc {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.drawer-prod-specs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  background: var(--bg-surface-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 0.78125rem;
+}
+
+.prod-spec-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.prod-spec-label {
+  color: var(--text-muted);
+}
+
+.prod-spec-val {
+  color: var(--text-primary);
+  font-weight: 600;
+}

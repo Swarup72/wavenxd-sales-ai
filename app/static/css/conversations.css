@@ -1,0 +1,254 @@
+/* ==========================================================================
+   WaveNxD AI Sales Representative - Conversations & Chat Messaging
+   ========================================================================== */
+
+/* New Consultation Button */
+.btn-new-chat {
+  width: 100%;
+  background: var(--brand-blue-subtle);
+  border: 1px solid var(--brand-blue-border);
+  color: var(--brand-blue);
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.84375rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all var(--transition-fast);
+}
+
+.btn-new-chat:hover {
+  background: var(--brand-blue);
+  color: #FFFFFF;
+  border-color: var(--brand-blue);
+}
+
+/* Conversation Sidebar Items */
+.conversation-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conversation-item:hover {
+  background: var(--bg-surface-secondary);
+  border-color: var(--border-color);
+}
+
+.conversation-item.active {
+  background: var(--brand-blue-subtle);
+  border-color: var(--brand-blue-border);
+}
+
+.conv-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.conv-title {
+  font-size: 0.84375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 190px;
+}
+
+.conversation-item.active .conv-title {
+  color: var(--brand-blue);
+}
+
+.conv-count {
+  font-size: 0.6875rem;
+  padding: 1px 6px;
+  background: var(--bg-surface-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.conversation-item.active .conv-count {
+  background: #FFFFFF;
+  border-color: var(--brand-blue-border);
+  color: var(--brand-blue);
+}
+
+.conv-time {
+  font-size: 0.71875rem;
+  color: var(--text-muted);
+}
+
+/* Message Bubbles */
+.message-bubble {
+  display: flex;
+  flex-direction: column;
+  max-width: 82%;
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message-bubble.user {
+  align-self: flex-end;
+}
+
+.message-bubble.assistant {
+  align-self: flex-start;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  padding: 0 4px;
+}
+
+.message-role {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.message-time {
+  font-size: 0.6875rem;
+  color: var(--text-subtle);
+}
+
+.message-text {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  word-break: break-word;
+  box-shadow: var(--shadow-xs);
+}
+
+/* Customer message: Deep crisp navy/blue background */
+.message-bubble.user .message-text {
+  background: #1E3A8A;
+  color: #FFFFFF;
+  border-bottom-right-radius: 2px;
+}
+
+/* Assistant message: Pure white surface on light background with subtle border */
+.message-bubble.assistant .message-text {
+  background: #FFFFFF;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-bottom-left-radius: 2px;
+}
+
+/* Rendered Markdown inside Assistant Message */
+.message-text p {
+  margin-bottom: 8px;
+}
+
+.message-text p:last-child {
+  margin-bottom: 0;
+}
+
+.message-text strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.message-bubble.user .message-text strong {
+  color: #FFFFFF;
+}
+
+.message-text em {
+  font-style: italic;
+}
+
+.message-text ul, .message-text ol {
+  padding-left: 20px;
+  margin: 6px 0 8px;
+}
+
+.message-text li {
+  margin-bottom: 4px;
+}
+
+.message-text code {
+  background: var(--bg-surface-secondary);
+  border: 1px solid var(--border-color);
+  padding: 2px 5px;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--brand-blue);
+}
+
+.message-bubble.user .message-text code {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+}
+
+.message-text h3, .message-text h4 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 10px 0 4px;
+}
+
+/* Assistant Audio TTS Button */
+.message-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 0 4px;
+}
+
+.btn-speak {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-xs);
+}
+
+.btn-speak:hover {
+  background: var(--brand-blue-subtle);
+  border-color: var(--brand-blue-border);
+  color: var(--brand-blue);
+}
+
+.btn-speak.playing {
+  background: var(--status-match-bg);
+  border-color: var(--status-match-border);
+  color: var(--status-match-text);
+}
+
+.btn-speak.loading {
+  opacity: 0.6;
+  cursor: wait;
+}

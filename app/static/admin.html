@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WaveNxD Admin Control Center | Industrial Sales & Operations</title>
+  <meta name="description" content="Administrative control center for WaveNxD AI Sales Representative: catalog governance, company product assignments, technical reviews, user administration, and system audit logs.">
+
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body class="admin-body">
+  <div id="adminRoot">
+    <!-- Top Admin Header -->
+    <header class="admin-header">
+      <div class="brand-wrapper">
+        <div class="admin-badge-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        </div>
+        <div>
+          <span class="brand-title">WaveNxD</span>
+          <span class="admin-portal-badge">Admin Control Center</span>
+        </div>
+      </div>
+
+      <div class="admin-header-actions">
+        <div class="admin-env-pill">
+          <span class="status-dot live"></span>
+          <span id="adminEnvText">Production Safe &bull; ₹0 Budget</span>
+        </div>
+        <a href="/app" class="btn-secondary-sm" id="customerPortalLink">
+          <span>&larr; Customer Workspace</span>
+        </a>
+        <div class="admin-user-profile">
+          <span class="admin-user-email" id="adminUserEmail">admin@wavenxd.com</span>
+          <span class="role-badge admin">ADMIN</span>
+          <button class="btn-logout-sm" id="adminLogoutBtn" title="Sign out of administrative session">Sign Out</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Access Denied Screen (displayed if non-admin attempts access) -->
+    <main class="access-denied-view" id="accessDeniedView" style="display: none;">
+      <div class="denied-card">
+        <div class="denied-icon">🚫</div>
+        <h2>403 Forbidden — Administrative Privileges Required</h2>
+        <p>Your current session does not possess administrator authorization to access the WaveNxD Control Center. All administrative actions require verified admin role credentials and double-submit CSRF tokens.</p>
+        <div class="denied-actions">
+          <a href="/app" class="btn-primary">Return to Customer Workspace</a>
+          <button class="btn-secondary" id="deniedSignOutBtn">Sign Out</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Main Admin Shell -->
+    <div class="admin-shell" id="adminShell" style="display: none;">
+      <!-- Admin Sidebar Navigation -->
+      <aside class="admin-sidebar">
+        <nav class="admin-nav">
+          <button class="nav-item active" data-tab="overview">
+            <span class="nav-icon">📊</span>
+            <span class="nav-label">Overview</span>
+          </button>
+          <button class="nav-item" data-tab="companies">
+            <span class="nav-icon">🏢</span>
+            <span class="nav-label">Companies</span>
+          </button>
+          <button class="nav-item" data-tab="users">
+            <span class="nav-icon">👥</span>
+            <span class="nav-label">Users &amp; Invitations</span>
+          </button>
+          <button class="nav-item" data-tab="products">
+            <span class="nav-icon">📦</span>
+            <span class="nav-label">Product Catalog</span>
+          </button>
+          <button class="nav-item" data-tab="assignments">
+            <span class="nav-icon">🔗</span>
+            <span class="nav-label">Product Assignments</span>
+          </button>
+          <button class="nav-item" data-tab="reviews">
+            <span class="nav-icon">⚠️</span>
+            <span class="nav-label">Technical Review Queue</span>
+            <span class="nav-badge" id="reviewBadgeCount" style="display: none;">0</span>
+          </button>
+          <button class="nav-item" data-tab="support">
+            <span class="nav-icon">💬</span>
+            <span class="nav-label">Consultations / Support</span>
+          </button>
+          <button class="nav-item" data-tab="leads">
+            <span class="nav-icon">📋</span>
+            <span class="nav-label">Leads &amp; Inquiries</span>
+          </button>
+          <button class="nav-item" data-tab="providers">
+            <span class="nav-icon">⚡</span>
+            <span class="nav-label">Provider Health &amp; Models</span>
+          </button>
+          <button class="nav-item" data-tab="audit">
+            <span class="nav-icon">📜</span>
+            <span class="nav-label">Audit Log</span>
+          </button>
+          <button class="nav-item" data-tab="settings">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-label">System Settings</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Main Tab Content Area -->
+      <main class="admin-main">
+        <!-- 1. OVERVIEW TAB -->
+        <section class="tab-pane active" id="pane-overview">
+          <div class="pane-header">
+            <div>
+              <h1 class="pane-title">System Overview &amp; Operations</h1>
+              <p class="pane-subtitle">Live verified database counts and operational telemetry for WaveNxD Precision Systems</p>
+            </div>
+            <button class="btn-secondary-sm" id="refreshOverviewBtn">
+              <span>↻ Refresh Metrics</span>
+            </button>
+          </div>
+
+          <!-- Metric Cards Grid -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-title">Customer Companies</span>
+                <span class="metric-icon">🏢</span>
+              </div>
+              <div class="metric-value" id="statCompanies">-</div>
+              <div class="metric-sub" id="statCompaniesSub">Loading active status...</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-title">Users &amp; Personas</span>
+                <span class="metric-icon">👥</span>
+              </div>
+              <div class="metric-value" id="statUsers">-</div>
+              <div class="metric-sub" id="statUsersSub">Active accounts</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-title">Verified Catalog Products</span>
+                <span class="metric-icon">📦</span>
+              </div>
+              <div class="metric-value" id="statProducts">-</div>
+              <div class="metric-sub" id="statProductsSub">Published in catalog</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-title">Active Company Entitlements</span>
+                <span class="metric-icon">🔗</span>
+              </div>
+              <div class="metric-value" id="statAssignments">-</div>
+              <div class="metric-sub">Company-scoped product assignments</div>
+            </div>
+
+            <div class="metric-card warning">
+              <div class="metric-header">
+                <span class="metric-title">Review Queue &amp; Flagged</span>
+                <span class="metric-icon">⚠️</span>
+              </div>
+              <div class="metric-value" id="statReviewQueue">-</div>
+              <div class="metric-sub" id="statReviewQueueSub">Products or requests awaiting signoff</div>
+            </div>
+
+            <div class="metric-card highlight">
+              <div class="metric-header">
+                <span class="metric-title">Configured LLM Provider</span>
+                <span class="metric-icon">⚡</span>
+              </div>
+              <div class="metric-value" id="statProvider">-</div>
+              <div class="metric-sub">Dual LLM Quota Fallback Enabled</div>
+            </div>
+          </div>
+
+          <!-- Quick Navigation Cards -->
+          <div class="admin-card mt-24">
+            <div class="card-header">
+              <h2 class="card-title">Governance &amp; Administrative Actions</h2>
+            </div>
+            <div class="actions-grid">
+              <button class="action-tile" onclick="window.adminSwitchTab('companies'); document.getElementById('openCreateCompanyBtn').click();">
+                <span class="tile-icon">➕</span>
+                <div class="tile-title">Register Company</div>
+                <div class="tile-desc">Add a corporate client with domain &amp; contact email</div>
+              </button>
+              <button class="action-tile" onclick="window.adminSwitchTab('users'); document.getElementById('openCreateInviteBtn').click();">
+                <span class="tile-icon">✉️</span>
+                <div class="tile-title">Invite Customer User</div>
+                <div class="tile-desc">Generate secure invitation link bound to company</div>
+              </button>
+              <button class="action-tile" onclick="window.adminSwitchTab('products'); document.getElementById('openCreateProductBtn').click();">
+                <span class="tile-icon">🔬</span>
+                <div class="tile-title">Add Catalog Nozzle</div>
+                <div class="tile-desc">Register technical specifications and operating envelope</div>
+              </button>
+              <button class="action-tile" onclick="window.adminSwitchTab('assignments'); document.getElementById('openAssignModalBtn').click();">
+                <span class="tile-icon">🔐</span>
+                <div class="tile-title">Assign Entitlement</div>
+                <div class="tile-desc">Authorize company access to specific product model</div>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. COMPANIES TAB -->
+        <section class="tab-pane" id="pane-companies">
+          <div class="pane-header">
+            <div>
+              <h1 class="pane-title">Company Account Management</h1>
+              <p class="pane-subtitle">Corporate customer entities, domain assignment scopes, and contact profiles</p>
+            </div>
+            <div class="pane-actions">
+              <input type="text" class="search-input" id="searchCompaniesInput" placeholder="Filter companies...">
+              <button class="btn-primary" id="openCreateCompanyBtn">
+                <span>+ Register New Company</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="table-responsive">
+              <table class="data-table" id="companiesTable">
+                <thead>
+                  <tr>
+                    <th>Company Name</th>
+                    <th>Contact Email</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="companiesTableBody">
+                  <!-- Dynamic rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. USERS & INVITATIONS TAB -->
+        <section class="tab-pane" id="pane-users">
+          <div class="pane-header">
+            <div>
+              <h1 class="pane-title">User Accounts &amp; Invitations</h1>
+              <p class="pane-subtitle">Manage customer and administrator personas, password resets, and pending invitations</p>
+            </div>
+            <div class="pane-actions">
+              <input type="text" class="search-input" id="searchUsersInput" placeholder="Filter users by email/name...">
+              <button class="btn-primary" id="openCreateInviteBtn">
+                <span>+ Create Invitation</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="tab-subnav">
+            <button class="subnav-btn active" id="subnavUsersListBtn">Active Accounts</button>
+            <button class="subnav-btn" id="subnavInvitationsListBtn">Invitations &amp; Tokens</button>
+          </div>
+
+          <div id="usersSubPane">
+            <div class="admin-card">
+              <div class="table-responsive">
+                <table class="data-table" id="usersTable">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Role</th>
+                      <th>Assigned Company</th>
+                      <th>Account Status</th>
+                      <th>Created</th>
+                      <th>Security Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="usersTableBody">
+                    <!-- Dynamic user rows -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="invitationsSubPane" style="display: none;">
+            <div class="admin-card">
+              <div class="table-responsive">
+                <table class="data-table" id="invitationsTable">
+                  <thead>
+                    <tr>
+                      <th>Invited Email</th>
+                      <th>Target Company</th>
+                      <th>Status</th>
+                      <th>Expires</th>
+                      <th>Created</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invitationsTableBody">
+                    <!-- Dynamic invitation rows -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. PRODUCT CATALOG TAB -->
+        <section class="tab-pane" id="pane-products">
+          <div class="pane-header">
+            <div>
+              <h1 class="pane-title">Product Catalog Governance</h1>
+              <p class="pane-subtitle">Ultrasonic nozzles, operating specifications, flow/viscosity limits, and publication status</p>
+            </div>
+            <div class="pane-actions">
+              <input type="text" class="search-input" id="searchProductsInput" placeholder="Search catalog...">
+              <button class="btn-primary" id="openCreateProductBtn">
+                <span>+ Add Catalog Product</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="table-responsive">
+              <table class="data-table" id="productsTable">
+                <thead>
+                  <tr>
+                    <th>Product Model</th>
+                    <th>Catalog Identifier</th>
+                    <th>Frequency</th>
+                    <th>Max Flow</th>
+                    <th>Max Viscosity</th>
+                    <th>Status</th>
+                    <th>Tech Review</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="productsTableBody">
+                  <!-- Dynamic product rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. PRODUCT ASSIGNMENTS TAB -->
+        <section class="tab-pane" id="pane-assignments">
+          <div class="pane-header">
+            <div>
+              <h1 class="pane-title">Company Product Assignments</h1>
+              <p class="pane-subtitle">Control company-specific product visibility and deterministic recommendation candidate sets</p>
+            </div>
+            <div class="pane-actions">
+              <select class="form-select-sm" id="assignmentCompanyFilter">
+                <option value="">All Companies</option>
+              </select>
+              <button class="btn-primary" id="openAssignModalBtn">
+                <span>+ Grant Product Entitlement</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="table-responsive">
+              <table class="data-table" id="assignmentsTable">
+                <thead>
+                  <tr>
+                    <th>Company Name</th>
+                    <th>Assigned Product</th>
+                    <th>Catalog Key</th>
+                    <th>Entitlement Status</th>
+                    <th>Granted Date</th>
+                    <th>Revoke</th>
+                  </tr>
+                </thead>
+                <tbody id="assignmentsTableBody">
+                  <!-- Dynamic assignment rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. TECHNICAL REVIEW QUEUE TAB -->
+        <section class="tab-pane" id="pane-reviews">
+          <div class="pane-header">
+            <div>
+              <h1 class="pane-title">Technical Review Queue</h1>
+              <p class="pane-subtitle">Products flagged for engineering verification and pending customer catalog access requests</p>
+            </div>
+            <button class="btn-secondary-sm" id="refreshReviewsBtn">
+              <span>↻ Refresh Queue</span>
+            </button>
+          </div>
+
+          <!-- Flagged Catalog Products -->
+          <div class="admin-card mb-24">
+            <div class="card-header">
+              <h2 class="card-title">Flagged Catalog Products (Technical Verification Required)</h2>
+              <span class="card-badge" id="flaggedProdsCountBadge">0 items</span>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="flaggedProdsTable">
+                <thead>
+                  <tr>
+                    <th>Product Name</th>
+                    <th>Catalog Key</th>
+                    <th>Status</th>
+                    <th>Engineering Notes</th>
+                    <th>Signoff Action</th>
+                  </tr>
+                </thead>
+                <tbody id="flaggedProdsTableBody">
+                  <!-- Dynamic flagged products -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Pending Customer Access Requests -->
+          <div class="admin-card">
+            <div class="card-header">
+              <h2 class="card-title">Customer Product Access Requests</h2>
+              <span class="card-badge" id="pendingRequestsCountBadge">0 pending</span>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="accessRequestsTable">
+                <thead>
+                  <tr>
+                    <th>Company</th>
+                    <th>Product</th>
+                    <th>Customer Reason</th>
+                    <th>Status</th>
+                    <th>Requested</th>
+                    <th>Review Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="accessRequestsTableBody">
+                  <!-- Dynamic requests -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. CONSULTATIONS / SUPPORT TAB -->
+        <section class="tab-pane" id="pane-support">
+          <div class="pane-header">
+            <div>
+              <h1 class="pane-title">Customer Technical Consultations</h1>
+              <p class="pane-subtitle">Consultation session logs, company scoping, and message history for technical support</p>
+            </div>
+            <div class="pane-actions">
+              <select class="form-select-sm" id="supportCompanyFilter">
+                <option value="">All Companies</option>
+              </select>
+              <button class="btn-secondary-sm" id="refreshSupportBtn">
+                <span>↻ Refresh Sessions</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="table-responsive">
+              <table class="data-table" id="supportConversationsTable">
+                <thead>
+                  <tr>
+                    <th>Consultation Title</th>
+                    <th>Company</th>
+                    <th>Customer Email</th>
+                    <th>Messages</th>
+                    <th>Status</th>
+                    <th>Last Active</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="supportConversationsTableBody">
+                  <!-- Dynamic conversation rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- LEADS & INQUIRIES TAB -->
+        <section class="tab-pane" id="pane-leads">
+          <div class="pane-header">
+            <div>
+              <h1 class="pane-title">Customer Leads &amp; Inquiries</h1>
+              <p class="pane-subtitle">Structured technical inquiries, recommendation links, commercial stages, and follow-up requests</p>
+            </div>
+            <div class="pane-actions" style="display: flex; gap: 8px; align-items: center;">
+              <select class="form-select-sm" id="leadCompanyFilter">
+                <option value="">All Companies</option>
+              </select>
+              <select class="form-select-sm" id="leadStageFilter">
+                <option value="">All Stages</option>
+                <option value="new">New</option>
+                <option value="qualified">Qualified</option>
+                <option value="quote_draft">Quote Draft</option>
+                <option value="follow_up_requested">Follow-Up Requested</option>
+                <option value="closed">Closed</option>
+              </select>
+              <button class="btn-secondary-sm" id="exportLeadsCsvBtn" title="Export leads to CSV with formula injection sanitization">
+                <span>📥 Export CSV</span>
+              </button>
+              <button class="btn-secondary-sm" id="refreshLeadsBtn">
+                <span>↻ Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="table-responsive">
+              <table class="data-table" id="leadsTable">
+                <thead>
+                  <tr>
+                    <th>Created</th>
+                    <th>Customer Name</th>
+                    <th>Company</th>
+                    <th>Contact Email</th>
+                    <th>Application</th>
+                    <th>Equipment</th>
+                    <th>Stage</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="leadsTableBody">
+                  <!-- Dynamic lead rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 8. PROVIDER HEALTH & USAGE TAB -->
+        <section class="tab-pane" id="pane-providers">
+          <div class="pane-header">
+            <div>
+              <h1 class="pane-title">Provider Health &amp; Model Configuration</h1>
+              <p class="pane-subtitle">Operational status of Dual LLM engines, Whisper STT, and Gemini TTS under ₹0 testing budget</p>
+            </div>
+            <button class="btn-secondary-sm" id="refreshProviderStatusBtn">
+              <span>↻ Ping Status</span>
+            </button>
+          </div>
+
+          <div class="provider-cards-grid">
+            <div class="provider-detail-card">
+              <div class="provider-card-header">
+                <span class="provider-type">Primary LLM</span>
+                <span class="status-pill active" id="primaryLlmStatus">CONFIGURED</span>
+              </div>
+              <div class="provider-model-name" id="primaryLlmModel">Loading...</div>
+              <div class="provider-specs">
+                <div class="spec-row">
+                  <span class="label">Provider:</span>
+                  <span class="val" id="primaryLlmProvider">Groq</span>
+                </div>
+                <div class="spec-row">
+                  <span class="label">Role:</span>
+                  <span class="val">Technical Sales Reasoning &amp; Extraction</span>
+                </div>
+                <div class="spec-row">
+                  <span class="label">Credentials:</span>
+                  <span class="val text-success">Server-side Protected</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="provider-detail-card">
+              <div class="provider-card-header">
+                <span class="provider-type">Secondary LLM (Fallback)</span>
+                <span class="status-pill active" id="secondaryLlmStatus">STANDBY</span>
+              </div>
+              <div class="provider-model-name" id="secondaryLlmModel">gemini-3.8-flash</div>
+              <div class="provider-specs">
+                <div class="spec-row">
+                  <span class="label">Provider:</span>
+                  <span class="val" id="secondaryLlmProvider">Gemini</span>
+                </div>
+                <div class="spec-row">
+                  <span class="label">Trigger Condition:</span>
+                  <span class="val">Groq HTTP 429 Rate Limit / Transient 503</span>
+                </div>
+                <div class="spec-row">
+                  <span class="label">Automatic Fallback:</span>
+                  <span class="val text-success" id="fallbackEnabledVal">Enabled (At most once)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="provider-detail-card">
+              <div class="provider-card-header">
+                <span class="provider-type">Speech-to-Text (STT)</span>
+                <span class="status-pill active">READY</span>
+              </div>
+              <div class="provider-model-name" id="sttModelName">whisper-large-v3</div>
+              <div class="provider-specs">
+                <div class="spec-row">
+                  <span class="label">Provider:</span>
+                  <span class="val">Groq Whisper</span>
+                </div>
+                <div class="spec-row">
+                  <span class="label">Capabilities:</span>
+                  <span class="val">Multilingual (EN, HI, MR Audio)</span>
+                </div>
+                <div class="spec-row">
+                  <span class="label">Budget Mode:</span>
+                  <span class="val text-success">₹0 Free Tier</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="provider-detail-card">
+              <div class="provider-card-header">
+                <span class="provider-type">Text-to-Speech (TTS)</span>
+                <span class="status-pill active">READY</span>
+              </div>
+              <div class="provider-model-name" id="ttsModelName">gemini-3.8-flash-lite-tts</div>
+              <div class="provider-specs">
+                <div class="spec-row">
+                  <span class="label">Provider:</span>
+                  <span class="val">Gemini Audio Synthesis</span>
+                </div>
+                <div class="spec-row">
+                  <span class="label">Playback Policy:</span>
+                  <span class="val">User-Initiated Only (No Autoplay)</span>
+                </div>
+                <div class="spec-row">
+                  <span class="label">Quota Policy:</span>
+                  <span class="val">Graceful fallback to text-only</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 9. AUDIT LOG TAB -->
+        <section class="tab-pane" id="pane-audit">
+          <div class="pane-header">
+            <div>
+              <h1 class="pane-title">Administrative Audit Trail</h1>
+              <p class="pane-subtitle">Cryptographically verifiable log of all administrative actions, entitlement mutations, and security events</p>
+            </div>
+            <div class="pane-actions">
+              <select class="form-select-sm" id="auditActionFilter">
+                <option value="">All Actions</option>
+                <option value="CREATE_COMPANY">CREATE_COMPANY</option>
+                <option value="UPDATE_COMPANY">UPDATE_COMPANY</option>
+                <option value="UPDATE_USER">UPDATE_USER</option>
+                <option value="RESET_PASSWORD">RESET_PASSWORD</option>
+                <option value="CREATE_PRODUCT">CREATE_PRODUCT</option>
+                <option value="UPDATE_PRODUCT">UPDATE_PRODUCT</option>
+                <option value="APPROVE_TECHNICAL_REVIEW">APPROVE_TECHNICAL_REVIEW</option>
+                <option value="ASSIGN_PRODUCT">ASSIGN_PRODUCT</option>
+                <option value="DEACTIVATE_ASSIGNMENT">DEACTIVATE_ASSIGNMENT</option>
+                <option value="APPROVE_ACCESS_REQUEST">APPROVE_ACCESS_REQUEST</option>
+                <option value="REJECT_ACCESS_REQUEST">REJECT_ACCESS_REQUEST</option>
+              </select>
+              <button class="btn-secondary-sm" id="refreshAuditBtn">
+                <span>↻ Refresh Logs</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="table-responsive">
+              <table class="data-table" id="auditTable">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Admin User</th>
+                    <th>Action</th>
+                    <th>Target Type</th>
+                    <th>Target ID</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                  <!-- Dynamic audit log entries -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 10. SYSTEM SETTINGS TAB -->
+        <section class="tab-pane" id="pane-settings">
+          <div class="pane-header">
+            <div>
+              <h1 class="pane-title">System Settings &amp; Security Policy</h1>
+              <p class="pane-subtitle">Environment configuration, cookie session policy, and administrative integrity safeguards</p>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="card-header">
+              <h2 class="card-title">Security &amp; Access Controls</h2>
+            </div>
+            <div class="settings-list">
+              <div class="setting-item">
+                <div>
+                  <div class="setting-title">Server-Side Sessions &amp; Argon2id</div>
+                  <div class="setting-desc">Stateful cookie sessions with secure flags and Argon2id password hashing. Password hashes are never returned in API responses.</div>
+                </div>
+                <span class="status-pill active">ENFORCED</span>
+              </div>
+              <div class="setting-item">
+                <div>
+                  <div class="setting-title">Double-Submit CSRF Protection</div>
+                  <div class="setting-desc">All POST, PATCH, and DELETE requests require cryptographic X-CSRF-Token validation matching the session cookie.</div>
+                </div>
+                <span class="status-pill active">ACTIVE</span>
+              </div>
+              <div class="setting-item">
+                <div>
+                  <div class="setting-title">Company Catalog Isolation</div>
+                  <div class="setting-desc">Customer sessions can strictly evaluate and view products actively assigned to their authenticated company profile.</div>
+                </div>
+                <span class="status-pill active">ENFORCED</span>
+              </div>
+              <div class="setting-item">
+                <div>
+                  <div class="setting-title">Last Administrator Lockout Protection</div>
+                  <div class="setting-desc">The system explicitly prohibits deactivating the final active administrator account to prevent total lockout.</div>
+                </div>
+                <span class="status-pill active">ENFORCED</span>
+              </div>
+              <div class="setting-item">
+                <div>
+                  <div class="setting-title">₹0 Testing Budget Mode</div>
+                  <div class="setting-desc">Production-grade safeguards restricting calls to free tier quotas with exponential backoff and circuit fallback.</div>
+                </div>
+                <span class="status-pill active">₹0 COMPLIANT</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Modals Container -->
+    <!-- Modal: Register Company -->
+    <div class="modal-overlay" id="companyModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="companyModalTitle">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 class="modal-title" id="companyModalTitle">Register New Company</h3>
+          <button class="modal-close" onclick="window.adminCloseModal('companyModal')" aria-label="Close dialog">&times;</button>
+        </div>
+        <form id="companyForm">
+          <input type="hidden" id="companyEditId">
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label" for="companyNameInput">Company Legal Name *</label>
+              <input type="text" class="form-input" id="companyNameInput" required placeholder="e.g. Gamma Microfluidics Ltd">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="companyEmailInput">Primary Contact Email</label>
+              <input type="email" class="form-input" id="companyEmailInput" placeholder="sales@gammamicro.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="companyNotesInput">Industrial Notes / Applications</label>
+              <textarea class="form-textarea" id="companyNotesInput" rows="3" placeholder="Semiconductor wafer coating, thin film R&amp;D..."></textarea>
+            </div>
+            <div class="form-group" id="companyStatusGroup" style="display: none;">
+              <label class="form-label">
+                <input type="checkbox" id="companyActiveCheckbox" checked> Active Account
+              </label>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="window.adminCloseModal('companyModal')">Cancel</button>
+            <button type="submit" class="btn-primary" id="saveCompanyBtn">Save Company</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Create Invitation -->
+    <div class="modal-overlay" id="inviteModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="inviteModalTitle">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 class="modal-title" id="inviteModalTitle">Create Customer Invitation</h3>
+          <button class="modal-close" onclick="window.adminCloseModal('inviteModal')" aria-label="Close dialog">&times;</button>
+        </div>
+        <form id="inviteForm">
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label" for="inviteEmailInput">Recipient Customer Email *</label>
+              <input type="email" class="form-input" id="inviteEmailInput" required placeholder="engineer@client.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inviteCompanySelect">Assign to Company *</label>
+              <select class="form-select" id="inviteCompanySelect" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div id="inviteResultBox" class="alert-banner success" style="display: none;">
+              <div style="font-weight: 600; margin-bottom: 4px;">Invitation Created!</div>
+              <div style="font-size: 0.75rem;">Token: <code id="inviteTokenDisplay" style="color: var(--accent-cyan); word-break: break-all;"></code></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="window.adminCloseModal('inviteModal')">Close</button>
+            <button type="submit" class="btn-primary" id="submitInviteBtn">Generate Invitation</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Reset User Password -->
+    <div class="modal-overlay" id="resetPasswordModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="resetPasswordModalTitle">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 class="modal-title" id="resetPasswordModalTitle">Safely Reset User Password</h3>
+          <button class="modal-close" onclick="window.adminCloseModal('resetPasswordModal')" aria-label="Close dialog">&times;</button>
+        </div>
+        <form id="resetPasswordForm">
+          <input type="hidden" id="resetPasswordUserId">
+          <div class="modal-body">
+            <p style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 16px;">
+              Resetting password for: <strong id="resetPasswordUserEmail" style="color: var(--text-primary);">user@company.com</strong>.
+              The password will be hashed via Argon2id immediately. Password strength policy is strictly enforced.
+            </p>
+            <div class="form-group">
+              <label class="form-label" for="newPasswordInput">New Secure Password *</label>
+              <input type="password" class="form-input" id="newPasswordInput" required placeholder="At least 8 chars, uppercase, lowercase, number, symbol">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="window.adminCloseModal('resetPasswordModal')">Cancel</button>
+            <button type="submit" class="btn-primary">Set New Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Create / Edit Product -->
+    <div class="modal-overlay" id="productModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="productModalTitle">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-header">
+          <h3 class="modal-title" id="productModalTitle">Add Catalog Nozzle Model</h3>
+          <button class="modal-close" onclick="window.adminCloseModal('productModal')" aria-label="Close dialog">&times;</button>
+        </div>
+        <form id="productForm">
+          <input type="hidden" id="productEditId">
+          <div class="modal-body">
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label class="form-label" for="prodNameInput">Product Model Name *</label>
+                <input type="text" class="form-input" id="prodNameInput" required placeholder="WaveNxD MicroMist-130">
+              </div>
+              <div class="form-group col-6">
+                <label class="form-label" for="prodCatalogKeyInput">Catalog Key (Unique Slug)</label>
+                <input type="text" class="form-input" id="prodCatalogKeyInput" placeholder="micromist-130">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group col-4">
+                <label class="form-label" for="prodFreqInput">Frequency (kHz)</label>
+                <input type="number" step="0.1" class="form-input" id="prodFreqInput" placeholder="130">
+              </div>
+              <div class="form-group col-4">
+                <label class="form-label" for="prodDropletInput">Median Droplet (µm)</label>
+                <input type="number" step="0.1" class="form-input" id="prodDropletInput" placeholder="18">
+              </div>
+              <div class="form-group col-4">
+                <label class="form-label" for="prodCategoryInput">Category</label>
+                <input type="text" class="form-input" id="prodCategoryInput" placeholder="High Frequency Micro-Spray">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label class="form-label" for="prodFlowMaxInput">Max Flow Rate (ml/min)</label>
+                <input type="number" step="0.1" class="form-input" id="prodFlowMaxInput" placeholder="5.0">
+              </div>
+              <div class="form-group col-6">
+                <label class="form-label" for="prodViscosityMaxInput">Max Viscosity (cP)</label>
+                <input type="number" step="0.1" class="form-input" id="prodViscosityMaxInput" placeholder="25.0">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label class="form-label" for="prodSprayPatternInput">Spray Pattern</label>
+                <input type="text" class="form-input" id="prodSprayPatternInput" placeholder="Focused Micro-Stream">
+              </div>
+              <div class="form-group col-6">
+                <label class="form-label" for="prodFeedConfigInput">Feed Configuration</label>
+                <input type="text" class="form-input" id="prodFeedConfigInput" placeholder="Syringe or Micro-Pump">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="prodAppsInput">Applications (Comma separated)</label>
+              <input type="text" class="form-input" id="prodAppsInput" placeholder="stent coating, thin films, lab spray drying">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label class="form-label" for="prodStatusSelect">Publication Status</label>
+                <select class="form-select" id="prodStatusSelect">
+                  <option value="draft">Draft (Unpublished)</option>
+                  <option value="published">Published</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+              <div class="form-group col-6">
+                <label class="form-label">
+                  <input type="checkbox" id="prodTechReviewCheckbox" checked> Technical Review Required
+                </label>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+                  If checked, recommendations will flag this product for engineering review.
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="prodNotesInput">Engineering / Catalog Notes</label>
+              <textarea class="form-textarea" id="prodNotesInput" rows="2" placeholder="Tested with aqueous solutions and volatile solvents..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="window.adminCloseModal('productModal')">Cancel</button>
+            <button type="submit" class="btn-primary" id="saveProductBtn">Save Product</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Grant Product Assignment -->
+    <div class="modal-overlay" id="assignmentModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 class="modal-title" id="assignmentModalTitle">Grant Product Entitlement</h3>
+          <button class="modal-close" onclick="window.adminCloseModal('assignmentModal')" aria-label="Close dialog">&times;</button>
+        </div>
+        <form id="assignmentForm">
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label" for="assignCompanySelect">Target Company *</label>
+              <select class="form-select" id="assignCompanySelect" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="assignProductSelect">Catalog Product *</label>
+              <select class="form-select" id="assignProductSelect" required>
+                <!-- Populated dynamically with published products -->
+              </select>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">
+              Assigning a product grants company users visibility and includes it in deterministic sales recommendations.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="window.adminCloseModal('assignmentModal')">Cancel</button>
+            <button type="submit" class="btn-primary" id="submitAssignBtn">Grant Entitlement</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Support Conversation Inspection -->
+    <div class="modal-overlay" id="supportModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="supportModalTitle">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title" id="supportModalTitle">Consultation History</h3>
+            <p style="font-size: 0.75rem; color: var(--text-muted);" id="supportModalSubtitle">Inspecting consultation</p>
+          </div>
+          <button class="modal-close" onclick="window.adminCloseModal('supportModal')" aria-label="Close dialog">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="support-msgs-list" id="supportMessagesList">
+            <!-- Messages rendered dynamically -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="window.adminCloseModal('supportModal')">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Lead Details & Stage Management -->
+    <div class="modal-overlay" id="adminLeadModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="adminLeadModalTitle">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title" id="adminLeadModalTitle">Lead &amp; Inquiry Details</h3>
+            <p style="font-size: 0.75rem; color: var(--text-muted);" id="adminLeadModalSubtitle">Commercial and technical inquiry summary</p>
+          </div>
+          <button class="modal-close" onclick="window.adminCloseModal('adminLeadModal')" aria-label="Close dialog">&times;</button>
+        </div>
+        <form id="adminLeadForm">
+          <input type="hidden" id="adminLeadId">
+          <div class="modal-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; background: var(--surface-bg); padding: 12px; border-radius: 6px; font-size: 0.85rem;">
+              <div>
+                <strong style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Customer Information:</strong>
+                <div style="margin-top: 4px;"><strong>Name:</strong> <span id="adminLeadCustName">-</span></div>
+                <div><strong>Company:</strong> <span id="adminLeadCompanyName">-</span></div>
+                <div><strong>Email:</strong> <span id="adminLeadEmail">-</span></div>
+                <div><strong>Phone:</strong> <span id="adminLeadPhone">-</span></div>
+                <div><strong>Industry:</strong> <span id="adminLeadIndustry">-</span></div>
+              </div>
+              <div>
+                <strong style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Consultation &amp; Follow-up:</strong>
+                <div style="margin-top: 4px;"><strong>Conversation ID:</strong> <span id="adminLeadConvId" style="font-family: monospace; font-size: 0.75rem;">-</span></div>
+                <div><strong>Lead Source:</strong> <span id="adminLeadSource">-</span></div>
+                <div><strong>Follow-up Scheduled:</strong> <span id="adminLeadFollowUpDt">-</span></div>
+                <div><strong>Follow-up Status:</strong> <span id="adminLeadFollowUpStatus">-</span></div>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 16px; background: var(--surface-bg); padding: 12px; border-radius: 6px; font-size: 0.85rem;">
+              <strong style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Technical Process Requirements:</strong>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-top: 6px;">
+                <div><strong>Application:</strong> <span id="adminLeadApp">-</span></div>
+                <div><strong>Material:</strong> <span id="adminLeadMaterial">-</span></div>
+                <div><strong>Flow Rate:</strong> <span id="adminLeadFlow">-</span></div>
+                <div><strong>Viscosity:</strong> <span id="adminLeadVisc">-</span></div>
+                <div><strong>Droplet Size:</strong> <span id="adminLeadDroplet">-</span></div>
+              </div>
+              <div style="margin-top: 8px;"><strong>Customer Technical Notes:</strong> <span id="adminLeadCustNotes">-</span></div>
+            </div>
+
+            <div style="margin-bottom: 16px; background: var(--surface-bg); padding: 12px; border-radius: 6px; font-size: 0.85rem;">
+              <strong style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Equipment Recommendations:</strong>
+              <div style="margin-top: 4px;"><strong>Recommended Nozzles:</strong> <span id="adminLeadProds" style="color: #0284C7; font-weight: 600;">-</span></div>
+              <div style="margin-top: 4px;"><strong>Recommendation Summary:</strong> <span id="adminLeadRecSummary">-</span></div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="adminLeadStageSelect">Lead Commercial Stage *</label>
+              <select class="form-select" id="adminLeadStageSelect" required>
+                <option value="new">new (Newly submitted inquiry)</option>
+                <option value="qualified">qualified (Engineering parameters verified)</option>
+                <option value="quote_draft">quote_draft (Draft quotation generated)</option>
+                <option value="follow_up_requested">follow_up_requested (Calendar sync requested)</option>
+                <option value="closed">closed (Commercial quote closed or archived)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="adminLeadInternalNotes">Internal Engineering &amp; Sales Notes</label>
+              <textarea class="form-textarea" id="adminLeadInternalNotes" rows="3" placeholder="Log customer interaction, pricing discussion, or engineering clarifications..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="window.adminCloseModal('adminLeadModal')">Close</button>
+            <button type="submit" class="btn-primary" id="saveAdminLeadBtn">Update Lead Status</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="adminToastContainer"></div>
+  </div>
+
+  <script type="module" src="/static/js/admin/admin.js"></script>
+</body>
+</html>

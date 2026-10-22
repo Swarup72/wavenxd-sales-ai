@@ -1,0 +1,140 @@
+/* ==========================================================================
+   WaveNxD AI Sales Representative - Technical Analysis Modal Styling
+   Structured engineering breakdown with clear visual hierarchy
+   ========================================================================== */
+
+.tech-modal-section {
+  margin-bottom: 24px;
+}
+
+.tech-modal-section:last-child {
+  margin-bottom: 0;
+}
+
+.tech-section-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tech-section-title.text-warning {
+  color: var(--warning);
+}
+
+.tech-section-title.text-info {
+  color: var(--brand-blue);
+}
+
+/* Process Parameters Grid */
+.specs-table-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.tech-spec-item {
+  background: var(--bg-surface-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.tech-spec-item .label {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.tech-spec-item .value {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Gaps and Clarification Lists */
+.tech-reasons-list {
+  padding-left: 20px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tech-reasons-list li {
+  margin-bottom: 2px;
+}
+
+/* Candidate Evaluations List */
+.modal-candidates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-candidate-card {
+  background: var(--bg-surface-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow-xs);
+}
+
+.modal-candidate-card.is-match {
+  border-color: var(--status-match-border);
+  background: #F0FDF4;
+}
+
+.modal-candidate-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-candidate-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.candidate-name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.candidate-key {
+  font-family: var(--font-mono);
+  font-size: 0.71875rem;
+  color: var(--brand-blue);
+  word-break: break-all;
+}
+
+.candidate-notes {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.candidate-spec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 6px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xs);
+  padding: 8px 10px;
+  font-size: 0.75rem;
+}

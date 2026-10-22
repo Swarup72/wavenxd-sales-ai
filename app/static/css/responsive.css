@@ -1,0 +1,126 @@
+/* ==========================================================================
+   WaveNxD AI Sales Representative - Responsive Design Breakpoints
+   Smooth layout adaptation for 1440px, 1280px, 1024px, 768px, and 390px
+   ========================================================================== */
+
+/* Tablet & Compact Desktop (<= 1024px) */
+@media (max-width: 1024px) {
+  .workspace {
+    grid-template-columns: 260px 1fr;
+  }
+
+  .summary-panel {
+    display: none;
+  }
+
+  .summary-panel.mobile-active {
+    display: flex;
+    position: fixed;
+    right: 0;
+    top: 60px;
+    bottom: 0;
+    width: 320px;
+    z-index: 50;
+    box-shadow: -4px 0 20px rgba(15, 23, 42, 0.15);
+    background: #FFFFFF;
+  }
+
+  .modal-dialog.modal-lg {
+    max-width: 90vw;
+  }
+}
+
+/* Tablet Portrait & Large Mobile (<= 768px) */
+@media (max-width: 768px) {
+  .main-header {
+    padding: 0 14px;
+    height: 56px;
+  }
+
+  .brand-title {
+    font-size: 1.0625rem;
+  }
+
+  .brand-tag {
+    display: none;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+    height: calc(100vh - 56px);
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .sidebar.mobile-active {
+    display: flex;
+    position: fixed;
+    left: 0;
+    top: 56px;
+    bottom: 0;
+    width: 280px;
+    z-index: 50;
+    box-shadow: 4px 0 20px rgba(15, 23, 42, 0.15);
+    background: #FFFFFF;
+  }
+
+  .messages-container {
+    padding: 16px 12px;
+  }
+
+  .message-bubble {
+    max-width: 92%;
+  }
+
+  .chat-input-area {
+    padding: 10px 12px;
+  }
+
+  .modal-overlay {
+    padding: 10px;
+  }
+
+  .modal-dialog {
+    max-height: 94vh;
+    border-radius: var(--radius-md);
+  }
+
+  .modal-header {
+    padding: 14px 16px;
+  }
+
+  .modal-body {
+    padding: 14px 16px;
+  }
+
+  .specs-table-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Mobile Viewports (<= 480px, including 390px) */
+@media (max-width: 480px) {
+  .user-company {
+    display: none;
+  }
+
+  .btn-admin-nav span {
+    font-size: 0.75rem;
+  }
+
+  .specs-table-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-dialog {
+    width: 100%;
+    max-height: 96vh;
+    margin: 0;
+  }
+
+  .chat-textarea {
+    font-size: 0.8125rem;
+  }
+}
