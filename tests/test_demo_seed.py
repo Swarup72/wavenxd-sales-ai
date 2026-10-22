@@ -6,6 +6,7 @@ from app.core.security import hash_password, validate_password_strength, verify_
 from app.services.demo_seed import (
     DEFAULT_DEMO_ADMIN_PASSWORD,
     DEFAULT_DEMO_CUSTOMER_PASSWORD,
+    initialize_system_data,
     reset_user_password,
     seed_demo_data,
 )
@@ -124,3 +125,47 @@ async def test_real_mongodb_seed_demo_data_idempotency():
         await client.drop_database(test_db_name)
     finally:
         await client.close()
+
+
+@pytest.mark.integration
+@pytest.mark.anyio
+async def test_initialize_system_data_startup_integration():
+    """
+    Verifies that initialize_system_data correctly handles cold startups,
+    seeds product catalog, seeds demo users when enabled, and preserves
+    custom user passwords when overwrite_passwords=False.
+    """
+    settings = get_settings()
+    test_db_name = f"{settings.mongodb_database}_init_startup_test"
+    client = AsyncMongoClient(settings.mongodb_uri)
+
+    try:
+        await client.admin.command("ping")
+        db = client[test_db_name]
+        await client.drop_database(test_db_name)
+
+        # 1. Cold startup: empty database
+        res = await initialize_system_data(db, settings)
+        assert res["startup_counts"]["users"] == 0
+        assert res["startup_counts"]["companies"] == 0
+        assert res["startup_counts"]["products"] == 0
+
+        # After initialization: catalog and users seeded
+        assert await db.products.count_documents({}) == 12
+        assert await db.users.count_documents({}) == 3
+
+        # 2. Modify password for Bob
+        await reset_user_password(db, "bob@betacoatings.com", "CustomSecretPass999!")
+        bob_before = await db.users.find_one({"email": "bob@betacoatings.com"})
+        assert verify_password("CustomSecretPass999!", bob_before["password_hash"]) is True
+
+        # 3. Second startup: initialize_system_data must NOT overwrite Bob's password
+        res2 = await initialize_system_data(db, settings)
+        assert res2["startup_counts"]["users"] == 3
+        bob_after = await db.users.find_one({"email": "bob@betacoatings.com"})
+        assert verify_password("CustomSecretPass999!", bob_after["password_hash"]) is True
+
+        await client.drop_database(test_db_name)
+    finally:
+        await client.close()
+

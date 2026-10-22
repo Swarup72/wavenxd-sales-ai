@@ -380,3 +380,114 @@ def test_csrf_regression_login_with_existing_session_and_token_refresh(auth_test
         assert login_b.json()["user"]["role"] == "customer"
 
 
+def test_demo_personas_login_success(auth_test_context):
+    """
+    Verifies that all three fast-access demo personas from the login interface
+    (Admin, Alice, Bob) authenticate successfully using their configured passwords.
+    """
+    db = auth_test_context["db"]
+    alpha_cid = ObjectId()
+    beta_cid = ObjectId()
+
+    from app.services.demo_seed import (
+        DEFAULT_DEMO_ADMIN_PASSWORD,
+        DEFAULT_DEMO_CUSTOMER_PASSWORD,
+    )
+
+    db.users_data["alice@alphapharma.com"] = {
+        "_id": ObjectId(),
+        "email": "alice@alphapharma.com",
+        "full_name": "Dr. Alice",
+        "role": UserRole.CUSTOMER,
+        "company_id": alpha_cid,
+        "password_hash": hash_password(DEFAULT_DEMO_CUSTOMER_PASSWORD),
+        "is_active": True,
+        "must_change_password": False,
+        "created_at": utc_now(),
+        "updated_at": utc_now(),
+    }
+
+    db.users_data["bob@betacoatings.com"] = {
+        "_id": ObjectId(),
+        "email": "bob@betacoatings.com",
+        "full_name": "Bob Builder",
+        "role": UserRole.CUSTOMER,
+        "company_id": beta_cid,
+        "password_hash": hash_password(DEFAULT_DEMO_CUSTOMER_PASSWORD),
+        "is_active": True,
+        "must_change_password": False,
+        "created_at": utc_now(),
+        "updated_at": utc_now(),
+    }
+
+    with TestClient(app) as client:
+        # 1. Admin persona login
+        csrf = client.get("/auth/csrf").json()["csrf_token"]
+        res_admin = client.post(
+            "/auth/login",
+            json={"email": "admin@wavenxd.com", "password": DEFAULT_DEMO_ADMIN_PASSWORD},
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert res_admin.status_code == 200
+        assert res_admin.json()["user"]["role"] == "admin"
+        assert res_admin.json()["user"]["email"] == "admin@wavenxd.com"
+
+        # 2. Alice persona login
+        csrf = client.get("/auth/csrf").json()["csrf_token"]
+        res_alice = client.post(
+            "/auth/login",
+            json={"email": "alice@alphapharma.com", "password": DEFAULT_DEMO_CUSTOMER_PASSWORD},
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert res_alice.status_code == 200
+        assert res_alice.json()["user"]["role"] == "customer"
+        assert res_alice.json()["user"]["company_id"] == str(alpha_cid)
+
+        # 3. Bob persona login
+        csrf = client.get("/auth/csrf").json()["csrf_token"]
+        res_bob = client.post(
+            "/auth/login",
+            json={"email": "bob@betacoatings.com", "password": DEFAULT_DEMO_CUSTOMER_PASSWORD},
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert res_bob.status_code == 200
+        assert res_bob.json()["user"]["role"] == "customer"
+        assert res_bob.json()["user"]["company_id"] == str(beta_cid)
+
+
+def test_login_missing_user_and_invalid_passwords_behavior(auth_test_context):
+    """
+    Confirms that missing users and wrong passwords both return 401 Unauthorized
+    with the exact same generic error message to prevent user enumeration.
+    """
+    with TestClient(app) as client:
+        csrf = client.get("/auth/csrf").json()["csrf_token"]
+
+        # 1. Completely missing user
+        missing_resp = client.post(
+            "/auth/login",
+            json={"email": "ghost.user@unknown.com", "password": "AnyValidPassword123!"},
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert missing_resp.status_code == 401
+        assert missing_resp.json()["detail"] == "Invalid email or password"
+
+        # 2. Existing user, wrong password
+        wrong_resp = client.post(
+            "/auth/login",
+            json={"email": "admin@wavenxd.com", "password": "TotallyWrongPassword123!"},
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert wrong_resp.status_code == 401
+        assert wrong_resp.json()["detail"] == "Invalid email or password"
+
+        # 3. Empty password or malformed input
+        bad_format_resp = client.post(
+            "/auth/login",
+            json={"email": "not-an-email", "password": "ValidPassword123!"},
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert bad_format_resp.status_code == 422
+
+
+

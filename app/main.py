@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, Request, Response
 from pymongo import AsyncMongoClient
@@ -9,6 +10,7 @@ from app.repositories.indexes import create_indexes
 from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.customer import router as customer_router
+from app.services.demo_seed import initialize_system_data
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,15 @@ async def lifespan(app: FastAPI):
             raise RuntimeError(
                 f"Database index initialization failed: {exc}"
             ) from exc
+
+        try:
+            init_summary = await initialize_system_data(database, settings)
+            app.state.startup_counts = init_summary.get("startup_counts", {})
+            app.state.init_summary = init_summary
+        except Exception as exc:
+            logger.warning("Non-fatal note during system data initialization: %s", exc)
+            app.state.startup_counts = {}
+            app.state.init_summary = None
 
         app.state.mongo_client = client
         app.state.database = database
@@ -112,8 +123,26 @@ async def database_health(request: Request):
         raise RuntimeError("Database client is not initialized")
     await database.command("ping")
 
-    return {
+    collections_stats: dict[str, int] = {}
+    for col_name in ("users", "companies", "products", "leads", "consultations"):
+        col = getattr(database, col_name, None)
+        if col is not None and hasattr(col, "count_documents"):
+            try:
+                cnt = col.count_documents({})
+                if hasattr(cnt, "__await__"):
+                    collections_stats[col_name] = await cnt
+            except Exception:
+                pass
+
+    res: dict[str, Any] = {
         "status": "ok",
         "database": get_settings().mongodb_database,
     }
+    if collections_stats:
+        res["collections"] = collections_stats
+    startup_counts = getattr(request.app.state, "startup_counts", None)
+    if startup_counts is not None:
+        res["startup_counts"] = startup_counts
+
+    return res
 

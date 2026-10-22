@@ -77,10 +77,12 @@ async def seed_demo_data(
     database: Any,
     customer_password: str = DEFAULT_DEMO_CUSTOMER_PASSWORD,
     admin_password: str = DEFAULT_DEMO_ADMIN_PASSWORD,
+    overwrite_passwords: bool = False,
 ) -> dict[str, Any]:
     """
     Idempotently seeds all development demo data into MongoDB.
     Safe to execute multiple times without producing duplicate records.
+    When overwrite_passwords=False, preserves existing user passwords.
     """
     # 1. Ensure indexes
     logger.info("Ensuring database indexes...")
@@ -113,19 +115,20 @@ async def seed_demo_data(
         admin_action = "inserted"
     else:
         admin_id = existing_admin["_id"]
+        update_fields: dict[str, Any] = {
+            "full_name": existing_admin.get("full_name") or "Admin Supervisor",
+            "role": UserRole.ADMIN,
+            "company_id": None,
+            "is_active": True,
+            "updated_at": now,
+        }
+        if overwrite_passwords or not existing_admin.get("password_hash"):
+            update_fields["password_hash"] = hash_password(admin_password)
+            update_fields["must_change_password"] = False
+
         await database.users.update_one(
             {"_id": admin_id},
-            {
-                "$set": {
-                    "full_name": "Admin Supervisor",
-                    "role": UserRole.ADMIN,
-                    "company_id": None,
-                    "password_hash": hash_password(admin_password),
-                    "is_active": True,
-                    "must_change_password": False,
-                    "updated_at": now,
-                }
-            },
+            {"$set": update_fields},
         )
         admin_action = "updated"
 
@@ -196,19 +199,20 @@ async def seed_demo_data(
             action = "inserted"
         else:
             uid = existing["_id"]
+            update_fields = {
+                "full_name": full_name,
+                "role": user_def["role"],
+                "company_id": cid,
+                "is_active": True,
+                "updated_at": now,
+            }
+            if overwrite_passwords or not existing.get("password_hash"):
+                update_fields["password_hash"] = hash_password(pwd)
+                update_fields["must_change_password"] = False
+
             await database.users.update_one(
                 {"_id": uid},
-                {
-                    "$set": {
-                        "full_name": full_name,
-                        "role": user_def["role"],
-                        "company_id": cid,
-                        "password_hash": hash_password(pwd),
-                        "is_active": True,
-                        "must_change_password": False,
-                        "updated_at": now,
-                    }
-                },
+                {"$set": update_fields},
             )
             action = "updated"
 
@@ -333,3 +337,60 @@ async def reset_user_password(
         },
     )
     return True
+
+
+async def initialize_system_data(
+    database: Any,
+    settings: Any,
+) -> dict[str, Any]:
+    """
+    Safely and idempotently verifies and initializes required system data on application startup:
+    1. Audits and records startup document counts for users, companies, products, etc.
+    2. Ensures the 12 verified ultrasonic product catalog items exist.
+    3. If settings.auto_seed_demo_data is True, ensures administrator and demo personas
+       exist with valid credentials, company assignments, and entitlement isolation,
+       without overwriting modified passwords (overwrite_passwords=False).
+    """
+    startup_counts: dict[str, int] = {}
+    for col_name in ("users", "companies", "products", "leads", "consultations"):
+        col = getattr(database, col_name, None)
+        if col is not None and hasattr(col, "count_documents"):
+            try:
+                cnt = col.count_documents({})
+                startup_counts[col_name] = await cnt if hasattr(cnt, "__await__") else 0
+            except Exception:
+                startup_counts[col_name] = 0
+
+    logger.info(
+        "MongoDB '%s' startup counts: %d users, %d companies, %d products",
+        getattr(settings, "mongodb_database", "unknown"),
+        startup_counts.get("users", 0),
+        startup_counts.get("companies", 0),
+        startup_counts.get("products", 0),
+    )
+
+    # 1. Product Catalog
+    catalog_res = await seed_catalog(database)
+
+    # 2. Demo and Initial Administrative Accounts
+    seed_res = None
+    if getattr(settings, "auto_seed_demo_data", False):
+        customer_pwd = getattr(
+            settings, "initial_customer_password", DEFAULT_DEMO_CUSTOMER_PASSWORD
+        )
+        admin_pwd = getattr(
+            settings, "initial_admin_password", DEFAULT_DEMO_ADMIN_PASSWORD
+        )
+        seed_res = await seed_demo_data(
+            database,
+            customer_password=customer_pwd,
+            admin_password=admin_pwd,
+            overwrite_passwords=False,
+        )
+
+    return {
+        "startup_counts": startup_counts,
+        "catalog": catalog_res,
+        "seed_result": seed_res,
+    }
+

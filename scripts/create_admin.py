@@ -1,5 +1,7 @@
+import argparse
 import asyncio
 import getpass
+import os
 import sys
 
 from pymongo import AsyncMongoClient
@@ -12,25 +14,47 @@ from app.models.user import User
 
 
 async def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="WaveNxD AI Sales Representative — Create Initial Administrator"
+    )
+    parser.add_argument("--email", help="Admin email address", default=None)
+    parser.add_argument("--password", help="Admin password", default=None)
+    parser.add_argument("--full-name", help="Admin full name", default=None)
+    args = parser.parse_args()
+
     settings = get_settings()
     print("=== WaveNxD AI Sales Representative — Create Initial Administrator ===")
 
-    email = input("Admin Email: ").strip().lower()
+    email = (args.email or os.environ.get("ADMIN_EMAIL") or "").strip().lower()
+    if not email:
+        if sys.stdin.isatty():
+            email = input("Admin Email: ").strip().lower()
+        else:
+            print("Error: Admin email is required via --email or ADMIN_EMAIL env var.", file=sys.stderr)
+            return 1
+
     if not email or "@" not in email:
         print("Error: A valid email address is required.", file=sys.stderr)
         return 1
 
-    full_name = input("Admin Full Name: ").strip()
+    full_name = (args.full_name or os.environ.get("ADMIN_FULL_NAME") or "").strip()
     if not full_name:
-        print("Error: Full name is required.", file=sys.stderr)
-        return 1
+        if sys.stdin.isatty():
+            full_name = input("Admin Full Name: ").strip()
+        else:
+            full_name = "Admin Supervisor"
 
-    password = getpass.getpass("Password: ")
-    confirm_password = getpass.getpass("Confirm Password: ")
-
-    if password != confirm_password:
-        print("Error: Passwords do not match.", file=sys.stderr)
-        return 1
+    password = args.password or os.environ.get("ADMIN_PASSWORD")
+    if not password:
+        if sys.stdin.isatty():
+            password = getpass.getpass("Password: ")
+            confirm_password = getpass.getpass("Confirm Password: ")
+            if password != confirm_password:
+                print("Error: Passwords do not match.", file=sys.stderr)
+                return 1
+        else:
+            print("Error: Password is required via --password or ADMIN_PASSWORD env var.", file=sys.stderr)
+            return 1
 
     valid, msg = validate_password_strength(password)
     if not valid:

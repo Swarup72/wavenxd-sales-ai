@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     csrf_header_name: str = "X-CSRF-Token"
     invitation_expiry_hours: int = 48
 
+    # Database Initialization & Demo Seeds
+    auto_seed_demo_data: bool = True
+    initial_admin_email: str = "admin@wavenxd.com"
+    initial_admin_password: str = "ValidAdminPass123!"
+    initial_customer_password: str = "ValidCustPass123!"
+
     # LLM & Conversation settings
     llm_provider: str = "groq"  # "ollama" | "gemini" | "groq"
     ollama_base_url: str = "http://127.0.0.1:11434"
