@@ -117,6 +117,14 @@ try {
   console.log('\n--- COMPUTED STYLES ---');
   console.log(JSON.stringify(styles.result.value, null, 2));
 
+  const screenshotRes = await cdp.send('Page.captureScreenshot', { format: 'png' });
+  const screenshotPath = '/Users/swaruppal/.gemini/antigravity-ide/brain/1d132897-ba6b-43b9-baea-b0795007e03a/deployed_login_page.png';
+  import('node:fs').then(({ writeFileSync }) => {
+    writeFileSync(screenshotPath, Buffer.from(screenshotRes.data, 'base64'));
+    console.log(`\nScreenshot saved: ${screenshotPath}`);
+  });
+  await sleep(500);
+
   ws.close();
 } catch (err) {
   console.error('Check failed:', err);
