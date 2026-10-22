@@ -73,6 +73,63 @@ def test_frontend_routes_served_successfully():
         assert "wavenxdPlayAudio" in js_resp.text
 
 
+def test_all_imported_css_and_js_assets_resolve():
+    """
+    Regression test ensuring every modular stylesheet imported by style.css (such as tokens.css)
+    and admin.css resolves with HTTP 200, correct MIME types, and is not accidentally gitignored.
+    """
+    import re
+    from pathlib import Path
+
+    with TestClient(app) as client:
+        # 1. Verify style.css and every imported modular stylesheet
+        root_css = client.get("/static/css/style.css")
+        assert root_css.status_code == 200
+        import_matches = re.findall(r'@import\s+["\']\.?/?([^"\']+)["\'];', root_css.text)
+        assert len(import_matches) >= 10, "Expected at least 10 imported modular CSS files"
+        assert "tokens.css" in import_matches, "tokens.css must be explicitly imported by style.css"
+
+        for imported_file in import_matches:
+            resp = client.get(f"/static/css/{imported_file}")
+            assert resp.status_code == 200, f"Imported stylesheet /static/css/{imported_file} returned {resp.status_code}"
+            assert "text/css" in resp.headers["content-type"], f"Invalid MIME for /static/css/{imported_file}"
+            assert len(resp.text.strip()) > 50, f"Stylesheet /static/css/{imported_file} is suspiciously empty"
+
+        # 2. Specifically verify tokens.css content
+        tokens_resp = client.get("/static/css/tokens.css")
+        assert tokens_resp.status_code == 200
+        assert "--font-sans" in tokens_resp.text
+        assert "--bg-main" in tokens_resp.text
+        assert "--brand-blue" in tokens_resp.text
+        assert "--radius-md" in tokens_resp.text
+
+        # 3. Verify admin.css resolves
+        admin_css = client.get("/static/css/admin.css")
+        assert admin_css.status_code == 200
+        assert "text/css" in admin_css.headers["content-type"]
+
+        # 4. Verify core JS modules resolve
+        for js_path in [
+            "/static/js/app.js",
+            "/static/js/admin.js",
+            "/static/js/core/auth.js",
+            "/static/js/core/state.js",
+            "/static/js/core/api.js",
+            "/static/js/customer/leads.js",
+            "/static/js/admin/leads.js",
+        ]:
+            resp = client.get(js_path)
+            assert resp.status_code == 200, f"Core JS module {js_path} returned {resp.status_code}"
+            assert "javascript" in resp.headers["content-type"]
+
+        # 5. Verify .gitignore does not ignore app/static/css/tokens.css
+        gitignore_path = Path(__file__).resolve().parent.parent / ".gitignore"
+        if gitignore_path.exists():
+            lines = [line.strip() for line in gitignore_path.read_text().splitlines()]
+            assert "*token*" not in lines, "Broad '*token*' line in .gitignore breaks tokens.css"
+            assert "*secret*" not in lines, "Broad '*secret*' line in .gitignore breaks secrets"
+
+
 def test_frontend_full_customer_interaction_flow(conversation_context):
     """
     End-to-End integration test simulating the exact browser workflow:

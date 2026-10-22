@@ -45,8 +45,14 @@ coverage.xml
 *.cert
 *.crt
 credentials.json
-*secret*
-*token*
+credentials*.json
+client_secret*.json
+*.token
+*.secret
+*secrets*.json
+*token*.json
+!tokens.css
+!app/static/css/tokens.css
 !tests/
 
 # Operating System & Editor Files
