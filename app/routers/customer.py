@@ -209,7 +209,10 @@ async def get_customer_recommendations(
     return evaluate_recommendations(requirements, candidate_products)
 
 
-def build_conversation_detail_response(conv: Conversation) -> ConversationDetailResponse:
+def build_conversation_detail_response(
+    conv: Conversation,
+    rec_result: RecommendationResult | None = None,
+) -> ConversationDetailResponse:
     return ConversationDetailResponse(
         id=str(conv.id),
         company_id=str(conv.company_id),
@@ -232,6 +235,7 @@ def build_conversation_detail_response(conv: Conversation) -> ConversationDetail
         ],
         created_at=conv.created_at.isoformat(),
         updated_at=conv.updated_at.isoformat(),
+        recommendation_result=rec_result,
     )
 
 
@@ -268,8 +272,9 @@ async def create_new_conversation(
         title=body.title,
         preferred_language=body.preferred_language,
     )
+    rec_result = None
     if body.initial_message and body.initial_message.strip():
-        conv, _, _, _ = await process_user_message(
+        conv, _, _, rec_result = await process_user_message(
             database=database,
             customer_user=current_customer,
             conversation_id=conv.id,
@@ -277,7 +282,10 @@ async def create_new_conversation(
             llm_provider=llm_provider,
             explicit_language=body.preferred_language,
         )
-    return build_conversation_detail_response(conv)
+    else:
+        candidate_products = await list_accessible_products_for_user(database, current_customer)
+        rec_result = evaluate_recommendations(conv.requirements, candidate_products)
+    return build_conversation_detail_response(conv, rec_result=rec_result)
 
 
 @router.get(
@@ -306,7 +314,9 @@ async def get_conversation_endpoint(
     database: Any = Depends(get_database),
 ):
     conv = await get_customer_conversation(database, current_customer, conversation_id)
-    return build_conversation_detail_response(conv)
+    candidate_products = await list_accessible_products_for_user(database, current_customer)
+    rec_result = evaluate_recommendations(conv.requirements, candidate_products)
+    return build_conversation_detail_response(conv, rec_result=rec_result)
 
 
 @router.post(

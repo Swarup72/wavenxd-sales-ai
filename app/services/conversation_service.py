@@ -94,7 +94,7 @@ def detect_language(text: str) -> str:
 
 
 def extract_regex_requirements(text: str) -> dict[str, Any]:
-    """Deterministically extracts known numeric engineering units from user text."""
+    """Deterministically extracts known numeric engineering units and explicit requirements from user text."""
     updates: dict[str, Any] = {}
 
     v_match = VISCOSITY_PATTERN.search(text)
@@ -124,7 +124,48 @@ def extract_regex_requirements(text: str) -> dict[str, Any]:
         except ValueError:
             pass
 
+    app_match = re.search(r"(?:application|process|app)\s*:\s*([^,\n\r;]+)", text, re.IGNORECASE)
+    if app_match:
+        val = app_match.group(1).strip()
+        if len(val) > 2:
+            updates["application"] = val
+
+    fluid_match = re.search(
+        r"(?:liquid\s*type|liquid|fluid\s*description|fluid|solution|coating\s*material)\s*:\s*([^,\n\r;]+)",
+        text,
+        re.IGNORECASE,
+    )
+    if fluid_match:
+        val = fluid_match.group(1).strip()
+        if len(val) > 2:
+            updates["fluid_description"] = val
+
+    pattern_match = re.search(r"(?:spray\s*pattern|pattern)\s*:\s*([^,\n\r;]+)", text, re.IGNORECASE)
+    if pattern_match:
+        val = pattern_match.group(1).strip()
+        if len(val) > 2:
+            updates["spray_pattern"] = val
+
+    feed_match = re.search(r"(?:feed\s*configuration|feed)\s*:\s*([^,\n\r;]+)", text, re.IGNORECASE)
+    if feed_match:
+        val = feed_match.group(1).strip()
+        if len(val) > 2:
+            updates["feed_configuration"] = val
+
     return updates
+
+
+HYPOTHETICAL_PATTERNS = re.compile(
+    r"\b(what if|what about|suppose|assuming|hypothetically|hypothetical|what would happen|could (?:we|it)|would (?:it|that|this) work|can we (?:test|try|run|use)|if we (?:test|try|run|use|set|operate))\b",
+    re.IGNORECASE,
+)
+
+
+def is_hypothetical_or_exploratory(text: str) -> bool:
+    """Detects whether a user message is a hypothetical scenario, question, or exploratory what-if."""
+    if not text:
+        return False
+    return bool(HYPOTHETICAL_PATTERNS.search(text))
 
 
 def extract_llm_json_block(llm_content: str) -> tuple[str, dict[str, Any] | None]:
@@ -168,6 +209,8 @@ def merge_requirements(
 
     for k, v in updates.items():
         if k in current_dict and v is not None:
+            if isinstance(v, str) and not v.strip():
+                continue
             try:
                 test_dict = {**current_dict, k: v}
                 validated = CustomerRequirements(**test_dict)
@@ -316,12 +359,19 @@ async def process_user_message(
     if comp_doc and comp_doc.get("name"):
         company_name = comp_doc["name"]
 
-    # 2. Deterministic unit extraction from user message
+    # 2. Deterministic unit and requirement extraction from user message
+    is_hypothetical = is_hypothetical_or_exploratory(cleaned_text)
     direct_updates = extract_regex_requirements(cleaned_text)
-    updated_requirements = merge_requirements(conversation.requirements, direct_updates)
+
+    if is_hypothetical:
+        eval_requirements = merge_requirements(conversation.requirements, direct_updates)
+        active_requirements = conversation.requirements
+    else:
+        active_requirements = merge_requirements(conversation.requirements, direct_updates)
+        eval_requirements = active_requirements
 
     # 3. Pre-evaluation with deterministic recommendation engine
-    rec_result = evaluate_recommendations(updated_requirements, authorized_products)
+    rec_result = evaluate_recommendations(eval_requirements, authorized_products)
 
     # 4. Format messages for LLM context
     history_messages: list[dict[str, str]] = []
@@ -332,7 +382,7 @@ async def process_user_message(
     system_prompt = build_sales_system_prompt(
         company_name=company_name,
         authorized_products=authorized_products,
-        current_requirements=updated_requirements,
+        current_requirements=eval_requirements,
         recommendation_result=rec_result,
         preferred_language=active_language,
     )
@@ -361,8 +411,14 @@ async def process_user_message(
 
     if structured_data and isinstance(structured_data, dict):
         model_updates = structured_data.get("requirements_update")
-        if isinstance(model_updates, dict):
-            updated_requirements = merge_requirements(updated_requirements, model_updates)
+        if isinstance(model_updates, dict) and model_updates:
+            if is_hypothetical:
+                filtered_updates = {k: v for k, v in model_updates.items() if k not in direct_updates}
+                active_requirements = merge_requirements(active_requirements, filtered_updates)
+                eval_requirements = merge_requirements(eval_requirements, model_updates)
+            else:
+                active_requirements = merge_requirements(active_requirements, model_updates)
+                eval_requirements = active_requirements
 
         unresolved = structured_data.get("unresolved_questions")
         if isinstance(unresolved, list):
@@ -375,8 +431,10 @@ async def process_user_message(
             if dl in ("en", "hi", "mr", "hinglish"):
                 conversation.preferred_language = dl
 
-    # 7. Re-evaluate recommendation engine with final merged requirements
-    final_rec_result = evaluate_recommendations(updated_requirements, authorized_products)
+    # 7. Re-evaluate recommendation engine with final requirements
+    final_rec_result = evaluate_recommendations(eval_requirements, authorized_products)
+    final_rec_result.requirements = active_requirements
+    final_rec_result.extracted_requirements = active_requirements
 
     # 8. Record user and assistant messages
     now = utc_now()
@@ -397,7 +455,7 @@ async def process_user_message(
 
     conversation.messages.append(user_msg)
     conversation.messages.append(assistant_msg)
-    conversation.requirements = updated_requirements
+    conversation.requirements = active_requirements
     conversation.updated_at = now
 
     if conversation.title == "New Product Consultation" and len(cleaned_text) <= 50:

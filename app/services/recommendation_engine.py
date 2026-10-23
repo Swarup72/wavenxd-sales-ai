@@ -321,6 +321,14 @@ def evaluate_recommendations(
             if g not in all_gaps:
                 all_gaps.append(g)
 
+    # Identify missing customer process specifications
+    if requirements.droplet_size_um is None:
+        all_gaps.append("Preferred droplet size (µm) not specified")
+    if not requirements.spray_pattern:
+        all_gaps.append("Spray pattern preference not specified")
+    if not requirements.feed_configuration:
+        all_gaps.append("Feed configuration preference not specified")
+
     confirmed: list[CandidateEvaluation] = []
     potential: list[CandidateEvaluation] = []
     insufficient: list[CandidateEvaluation] = []
@@ -403,6 +411,7 @@ def evaluate_recommendations(
         )
 
     any_tech_review = any(e.technical_review_required for e in confirmed + potential + insufficient)
+    top_recommended = confirmed[0] if confirmed else (potential[0] if potential else None)
 
     return RecommendationResult(
         overall_outcome=overall_outcome,
@@ -414,4 +423,7 @@ def evaluate_recommendations(
         specification_gaps=all_gaps,
         clarification_questions=all_clarifications,
         technical_review_required=any_tech_review,
+        requirements=requirements,
+        extracted_requirements=requirements,
+        recommended_product=top_recommended,
     )

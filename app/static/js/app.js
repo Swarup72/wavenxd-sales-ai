@@ -136,9 +136,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderMessages(detail.messages, el.messagesList, el.emptyChatState);
       scrollToBottom(el.messagesContainer, false);
 
+      state.currentConversationId = convId;
+      state.currentConversationDetail = detail;
       state.lastRecResult = detail.recommendation_result;
-      renderConsultationSummary(state.lastRecResult, el);
-      renderTechnicalDetailsModal(state.lastRecResult, el);
+      renderConsultationSummary(state.lastRecResult, el, detail.requirements);
+      renderTechnicalDetailsModal(state.lastRecResult, el, detail.requirements);
 
       // Re-render conversation list for active highlighting
       renderConversationList(
@@ -253,6 +255,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Helper to reconcile and render message response with consultation summary
+  function handleMessageResponse(res) {
+    if (!res || !res.assistant_message) return;
+    if (!state.currentConversationDetail) state.currentConversationDetail = { messages: [] };
+    if (!state.currentConversationDetail.messages) state.currentConversationDetail.messages = [];
+    if (res.user_message) state.currentConversationDetail.messages.push(res.user_message);
+    state.currentConversationDetail.messages.push(res.assistant_message);
+
+    if (res.updated_requirements) {
+      state.currentConversationDetail.requirements = res.updated_requirements;
+    }
+    if (res.recommendation_result) {
+      state.lastRecResult = res.recommendation_result;
+    }
+
+    renderMessages(state.currentConversationDetail.messages, el.messagesList, el.emptyChatState);
+    scrollToBottom(el.messagesContainer, true);
+
+    renderConsultationSummary(state.lastRecResult, el, state.currentConversationDetail?.requirements);
+    renderTechnicalDetailsModal(state.lastRecResult, el, state.currentConversationDetail?.requirements);
+  }
+
   // 6. Send Message
   if (el.sendBtn) {
     el.sendBtn.addEventListener('click', () => {
@@ -262,20 +286,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       const text = el.messageInput ? el.messageInput.value : '';
       sendTextMessage(state.currentConversationId, text, el, async (res) => {
-        if (res && res.assistant_message) {
-          if (!state.currentConversationDetail.messages) state.currentConversationDetail.messages = [];
-          if (res.user_message) state.currentConversationDetail.messages.push(res.user_message);
-          state.currentConversationDetail.messages.push(res.assistant_message);
-
-          renderMessages(state.currentConversationDetail.messages, el.messagesList, el.emptyChatState);
-          scrollToBottom(el.messagesContainer, true);
-
-          if (res.recommendation_result) {
-            state.lastRecResult = res.recommendation_result;
-            renderConsultationSummary(state.lastRecResult, el);
-            renderTechnicalDetailsModal(state.lastRecResult, el);
-          }
-        }
+        handleMessageResponse(res);
       });
     });
   }
@@ -323,20 +334,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (el.stopRecBtn) {
     el.stopRecBtn.addEventListener('click', () => {
       stopAndSubmitRecording(el.recordingBar, (res) => {
-        if (res && res.assistant_message) {
-          if (!state.currentConversationDetail.messages) state.currentConversationDetail.messages = [];
-          if (res.user_message) state.currentConversationDetail.messages.push(res.user_message);
-          state.currentConversationDetail.messages.push(res.assistant_message);
-
-          renderMessages(state.currentConversationDetail.messages, el.messagesList, el.emptyChatState);
-          scrollToBottom(el.messagesContainer, true);
-
-          if (res.recommendation_result) {
-            state.lastRecResult = res.recommendation_result;
-            renderConsultationSummary(state.lastRecResult, el);
-            renderTechnicalDetailsModal(state.lastRecResult, el);
-          }
-        }
+        handleMessageResponse(res);
       });
     });
   }
@@ -348,20 +346,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const file = e.target.files && e.target.files[0];
       if (file) {
         uploadAndProcessAudio(file, file.name, (res) => {
-          if (res && res.assistant_message) {
-            if (!state.currentConversationDetail.messages) state.currentConversationDetail.messages = [];
-            if (res.user_message) state.currentConversationDetail.messages.push(res.user_message);
-            state.currentConversationDetail.messages.push(res.assistant_message);
-
-            renderMessages(state.currentConversationDetail.messages, el.messagesList, el.emptyChatState);
-            scrollToBottom(el.messagesContainer, true);
-
-            if (res.recommendation_result) {
-              state.lastRecResult = res.recommendation_result;
-              renderConsultationSummary(state.lastRecResult, el);
-              renderTechnicalDetailsModal(state.lastRecResult, el);
-            }
-          }
+          handleMessageResponse(res);
         });
       }
       el.audioFileInput.value = '';
@@ -371,7 +356,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 8. Technical Details Modal
   if (el.openTechDetailsBtn && el.techDetailsModal) {
     el.openTechDetailsBtn.addEventListener('click', () => {
-      renderTechnicalDetailsModal(state.lastRecResult, el);
+      renderTechnicalDetailsModal(state.lastRecResult, el, state.currentConversationDetail?.requirements);
       openModal(el.techDetailsModal, el.openTechDetailsBtn);
     });
   }

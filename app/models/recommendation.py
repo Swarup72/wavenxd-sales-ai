@@ -54,3 +54,6 @@ class RecommendationResult(BaseModel):
     specification_gaps: list[str] = Field(default_factory=list)
     clarification_questions: list[str] = Field(default_factory=list)
     technical_review_required: bool = False
+    requirements: CustomerRequirements | None = None
+    extracted_requirements: CustomerRequirements | None = None
+    recommended_product: CandidateEvaluation | None = None

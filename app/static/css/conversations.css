@@ -211,6 +211,53 @@
   margin: 10px 0 4px;
 }
 
+/* Markdown Tables */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin: 8px 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+.markdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.markdown-table th,
+.markdown-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.markdown-table th {
+  background: var(--bg-surface-secondary);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.markdown-table tr:last-child td {
+  border-bottom: none;
+}
+
+.message-bubble.user .markdown-table {
+  color: #FFFFFF;
+}
+
+.message-bubble.user .markdown-table th {
+  background: rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
+}
+
+.message-bubble.user .markdown-table th,
+.message-bubble.user .markdown-table td {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
 /* Assistant Audio TTS Button */
 .message-actions {
   display: flex;

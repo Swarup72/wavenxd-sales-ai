@@ -73,6 +73,7 @@ class ConversationDetailResponse(BaseModel):
     messages: list[MessageResponse]
     created_at: str
     updated_at: str
+    recommendation_result: RecommendationResult | None = None
 
 
 class SendMessageResponse(BaseModel):

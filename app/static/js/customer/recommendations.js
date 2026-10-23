@@ -33,7 +33,7 @@ window.customerRequestAccess = async (productId, productName, btnEl) => {
   }
 };
 
-export function renderTechnicalDetailsModal(recResult, elements) {
+export function renderTechnicalDetailsModal(recResult, elements, requirementsOverride) {
   if (!elements) return;
 
   const {
@@ -49,13 +49,18 @@ export function renderTechnicalDetailsModal(recResult, elements) {
   const status = (result.overall_outcome || 'insufficient_information').toLowerCase();
 
   // 1. Process Parameters Grid
-  const reqs = result.extracted_requirements || {};
+  const reqs = requirementsOverride || result.requirements || result.extracted_requirements || {};
   if (modalExtractedParamsGrid) {
+    const dropletVal =
+      reqs.droplet_size_um !== undefined && reqs.droplet_size_um !== null
+        ? reqs.droplet_size_um
+        : reqs.target_droplet_size_um;
     const params = [
       { label: 'Application Process', val: reqs.application, unit: '' },
+      { label: 'Liquid / Fluid', val: reqs.fluid_description, unit: '' },
       { label: 'Flow Rate', val: reqs.flow_rate_ml_min, unit: 'ml/min' },
       { label: 'Fluid Viscosity', val: reqs.viscosity_cp, unit: 'cP' },
-      { label: 'Target Droplet Size', val: reqs.target_droplet_size_um, unit: 'μm' },
+      { label: 'Target Droplet Size', val: dropletVal, unit: 'μm' },
       { label: 'Spray Pattern', val: reqs.spray_pattern, unit: '' },
       { label: 'Feed Configuration', val: reqs.feed_configuration, unit: '' },
     ];
