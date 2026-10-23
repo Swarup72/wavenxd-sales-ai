@@ -5,83 +5,25 @@
 import { escapeHtml } from '../ui/formatting.js';
 
 export function renderConsultationSummary(recResult, elements, requirementsOverride) {
-  if (!elements) return;
+  const el = elements || {};
 
-  const {
-    matchStatusBadge,
-    matchSummaryText,
-    reviewWarningPill,
-    knownReqsContainer,
-    missingInfoAccordion,
-    missingInfoCount,
-    missingInfoList,
-    compactProductCard,
-    compactProductEmpty,
-    compactProductContent,
-    compactProdName,
-    compactProdKey,
-    compactProdMatchBadge,
-    compactProdExplanation,
-  } = elements;
+  const matchStatusBadge = el.matchStatusBadge || document.getElementById('matchStatusBadge');
+  const matchSummaryText = el.matchSummaryText || document.getElementById('matchSummaryText');
+  const reviewWarningPill = el.reviewWarningPill || document.getElementById('reviewWarningPill');
+  const knownReqsContainer = el.knownReqsContainer || document.getElementById('knownReqsContainer');
+  const missingInfoAccordion = el.missingInfoAccordion || document.getElementById('missingInfoAccordion');
+  const missingInfoCount = el.missingInfoCount || document.getElementById('missingInfoCount');
+  const missingInfoList = el.missingInfoList || document.getElementById('missingInfoList');
+  const compactProductEmpty = el.compactProductEmpty || document.getElementById('compactProductEmpty');
+  const compactProductContent = el.compactProductContent || document.getElementById('compactProductContent');
+  const compactProdName = el.compactProdName || document.getElementById('compactProdName');
+  const compactProdKey = el.compactProdKey || document.getElementById('compactProdKey');
+  const compactProdMatchBadge = el.compactProdMatchBadge || document.getElementById('compactProdMatchBadge');
+  const compactProdExplanation = el.compactProdExplanation || document.getElementById('compactProdExplanation');
 
   const result = recResult || {};
-  const status = (result.overall_outcome || 'INSUFFICIENT_INFORMATION').toLowerCase();
-  const isNoMatch = status.includes('no_match') || status.includes('nomatch');
-  const isConfirmed = status === 'match' || status === 'confirmed_match';
-  const isPotential = status.includes('potential');
 
-  // Candidate product evaluation
-  const prod =
-    result.recommended_product ||
-    (Array.isArray(result.confirmed_recommendations) && result.confirmed_recommendations[0]) ||
-    (Array.isArray(result.potential_matches) && result.potential_matches[0]) ||
-    null;
-
-  // 1. Status Badge & Summary
-  if (matchStatusBadge) {
-    matchStatusBadge.className = 'status-indicator-badge';
-    let badgeClass = 'insufficient';
-    let label = 'INSUFFICIENT INFORMATION';
-
-    if (isConfirmed) {
-      badgeClass = 'match';
-      label = 'CONFIRMED MATCH';
-    } else if (isPotential) {
-      badgeClass = 'potential';
-      label = 'POTENTIAL MATCH';
-    } else if (isNoMatch) {
-      badgeClass = 'nomatch';
-      label = 'NO COMPATIBLE NOZZLE';
-    }
-
-    matchStatusBadge.classList.add(badgeClass);
-    matchStatusBadge.textContent = label;
-  }
-
-  if (matchSummaryText) {
-    if (isNoMatch) {
-      matchSummaryText.textContent =
-        (result.summary_reasons && result.summary_reasons[0]) ||
-        'Catalog products do not establish verified compatibility with specified process application.';
-    } else if (isConfirmed && prod) {
-      matchSummaryText.textContent = `Recommended: ${prod.product_name}. Verified against company catalog.`;
-    } else if (isPotential && prod) {
-      matchSummaryText.textContent = `Potential candidate: ${prod.product_name}. Technical clarification required.`;
-    } else if (result.clarification_questions && result.clarification_questions.length > 0) {
-      matchSummaryText.textContent = 'Clarifications needed to confirm process compatibility.';
-    } else if (result.specification_gaps && result.specification_gaps.length > 0) {
-      matchSummaryText.textContent = result.specification_gaps[0];
-    } else {
-      matchSummaryText.textContent = 'Provide flow rate, viscosity, or application for engineering compatibility evaluation.';
-    }
-  }
-
-  if (reviewWarningPill) {
-    const needsReview = Boolean(result.technical_review_required || result.requires_technical_review);
-    reviewWarningPill.style.display = needsReview ? 'flex' : 'none';
-  }
-
-  // 2. Active Requirements (structured data from backend)
+  // 1. Active Requirements (structured data from backend)
   const reqs = requirementsOverride || result.requirements || result.extracted_requirements || {};
   const activeParams = [];
   if (reqs.flow_rate_ml_min !== undefined && reqs.flow_rate_ml_min !== null) {
@@ -115,7 +57,87 @@ export function renderConsultationSummary(recResult, elements, requirementsOverr
     }
   }
 
-  // 3. Collapsible Missing Information
+  // 2. Determine Outcome & Candidate Product
+  const rawOutcome = (
+    result.overall_outcome ||
+    result.status ||
+    result.match_status ||
+    (Array.isArray(result.candidate_evaluations) && result.candidate_evaluations.length > 0 && result.candidate_evaluations.every(c => c.status === 'no_match') ? 'no_match' : '') ||
+    'INSUFFICIENT_INFORMATION'
+  ).toLowerCase();
+
+  const isConfirmed = rawOutcome === 'match' || rawOutcome === 'confirmed_match';
+  const isPotential = rawOutcome.includes('potential') || rawOutcome.includes('partial');
+
+  // Candidate product evaluation
+  const prod =
+    result.recommended_product ||
+    (Array.isArray(result.confirmed_recommendations) && result.confirmed_recommendations[0]) ||
+    (Array.isArray(result.potential_matches) && result.potential_matches[0]) ||
+    (Array.isArray(result.candidate_evaluations) &&
+      result.candidate_evaluations.find(
+        (c) => (c.status || '').toLowerCase() === 'match' || (c.status || '').toLowerCase().includes('potential')
+      )) ||
+    null;
+
+  const isNoMatch =
+    rawOutcome.includes('no_match') ||
+    rawOutcome.includes('nomatch') ||
+    rawOutcome.includes('no-match') ||
+    rawOutcome === 'no_compatible_nozzle' ||
+    (!prod &&
+      Array.isArray(result.unmatched_candidates) &&
+      result.unmatched_candidates.length > 0 &&
+      (!result.confirmed_recommendations || result.confirmed_recommendations.length === 0) &&
+      (!result.potential_matches || result.potential_matches.length === 0) &&
+      activeParams.length >= 2 &&
+      !rawOutcome.includes('insufficient'));
+
+  // 3. Status Badge & Summary Text
+  if (matchStatusBadge) {
+    matchStatusBadge.className = 'status-indicator-badge';
+    let badgeClass = 'insufficient';
+    let label = 'INSUFFICIENT INFORMATION';
+
+    if (isNoMatch) {
+      badgeClass = 'nomatch';
+      label = 'NO COMPATIBLE NOZZLE';
+    } else if (isConfirmed && prod) {
+      badgeClass = 'match';
+      label = 'CONFIRMED MATCH';
+    } else if (isPotential && prod) {
+      badgeClass = 'potential';
+      label = 'POTENTIAL MATCH';
+    }
+
+    matchStatusBadge.classList.add(badgeClass);
+    matchStatusBadge.textContent = label;
+  }
+
+  if (matchSummaryText) {
+    if (isNoMatch) {
+      matchSummaryText.textContent =
+        (result.summary_reasons && result.summary_reasons[0]) ||
+        'Catalog products do not establish verified compatibility with specified process application.';
+    } else if (isConfirmed && prod) {
+      matchSummaryText.textContent = `Recommended: ${prod.product_name}. Verified against company catalog.`;
+    } else if (isPotential && prod) {
+      matchSummaryText.textContent = `Potential candidate: ${prod.product_name}. Technical clarification required.`;
+    } else if (result.clarification_questions && result.clarification_questions.length > 0) {
+      matchSummaryText.textContent = 'Clarifications needed to confirm process compatibility.';
+    } else if (result.specification_gaps && result.specification_gaps.length > 0) {
+      matchSummaryText.textContent = result.specification_gaps[0];
+    } else {
+      matchSummaryText.textContent = 'Provide flow rate, viscosity, or application for engineering compatibility evaluation.';
+    }
+  }
+
+  if (reviewWarningPill) {
+    const needsReview = Boolean(result.technical_review_required || result.requires_technical_review);
+    reviewWarningPill.style.display = needsReview ? 'flex' : 'none';
+  }
+
+  // 4. Collapsible Missing Information
   const gaps = [];
   if (Array.isArray(result.specification_gaps)) {
     gaps.push(...result.specification_gaps);
@@ -139,9 +161,10 @@ export function renderConsultationSummary(recResult, elements, requirementsOverr
     }
   }
 
-  // 4. Compact Recommended Product
+  // 5. Compact Recommended Product Card (Handles insufficient, match, and no_match deterministically)
   if (compactProductEmpty && compactProductContent) {
     if (isNoMatch) {
+      // Completed evaluation concluded no compatible nozzle
       compactProductEmpty.style.display = 'none';
       compactProductContent.style.display = 'block';
 
@@ -155,14 +178,15 @@ export function renderConsultationSummary(recResult, elements, requirementsOverr
         compactProdExplanation.textContent =
           (result.summary_reasons && result.summary_reasons.length > 0)
             ? result.summary_reasons.join('; ')
-            : 'None of your company\'s authorized catalog products meet the documented application requirements.';
+            : "None of your company's authorized catalog products meet the specified application and operational requirements.";
       }
     } else if (prod && (isConfirmed || isPotential)) {
+      // Completed evaluation found confirmed or potential match
       compactProductEmpty.style.display = 'none';
       compactProductContent.style.display = 'block';
 
       if (compactProdName) compactProdName.textContent = prod.product_name;
-      if (compactProdKey) compactProdKey.textContent = prod.catalog_key || prod.product_id;
+      if (compactProdKey) compactProdKey.textContent = prod.catalog_key || prod.product_id || 'WaveNxD Series';
       if (compactProdMatchBadge) {
         compactProdMatchBadge.textContent = isConfirmed ? 'CONFIRMED MATCH' : 'POTENTIAL MATCH';
         compactProdMatchBadge.className = `badge-status ${isConfirmed ? 'match' : 'potential'}`;
@@ -171,9 +195,10 @@ export function renderConsultationSummary(recResult, elements, requirementsOverr
         compactProdExplanation.textContent =
           (prod.reasons && prod.reasons.length > 0)
             ? prod.reasons.join('; ')
-            : (result.summary_reasons && result.summary_reasons[0]) || 'Verified against company catalog.';
+            : (result.summary_reasons && result.summary_reasons[0]) || 'Verified against company catalog specifications.';
       }
     } else {
+      // Awaiting sufficient technical parameters
       compactProductEmpty.style.display = 'block';
       compactProductEmpty.textContent = 'Awaiting sufficient technical parameters...';
       compactProductContent.style.display = 'none';

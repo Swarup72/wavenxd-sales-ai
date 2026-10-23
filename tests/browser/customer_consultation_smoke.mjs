@@ -186,6 +186,14 @@ Initial target flow rate: 10 mL/min`;
       fail(`Expected NO MATCH product card, got badge="${badgeText}", name="${prodName}"`);
     }
 
+    const emptyDisplay = await evaluate(cdp, `getComputedStyle(document.getElementById('compactProductEmpty')).display`);
+    const contentDisplay = await evaluate(cdp, `getComputedStyle(document.getElementById('compactProductContent')).display`);
+    if (emptyDisplay === 'none' && contentDisplay !== 'none') {
+      pass('Recommended Product waiting placeholder is hidden and product content card is visible');
+    } else {
+      fail(`Expected waiting placeholder hidden and content visible, but emptyDisplay=${emptyDisplay}, contentDisplay=${contentDisplay}`);
+    }
+
     // Verify Missing Information
     const missingCount = await evaluate(cdp, `document.getElementById('missingInfoCount').innerText`);
     console.log(`   Missing info count: ${missingCount}`);

@@ -141,6 +141,12 @@
   color: var(--status-insufficient-text);
 }
 
+.badge-status.nomatch {
+  background: var(--status-nomatch-bg);
+  color: var(--status-nomatch-text);
+  border: 1px solid var(--status-nomatch-border);
+}
+
 .review-warning-pill {
   margin-top: 8px;
   padding: 6px 10px;

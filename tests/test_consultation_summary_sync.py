@@ -389,3 +389,150 @@ def test_requirement_j_message_formatting_markdown_and_escaping():
     assert "<script>" not in data["xssOut"]
     assert "&lt;script&gt;alert" in data["xssOut"]
     assert "&lt;img src=x onerror=alert(1)&gt;" in data["xssOut"]
+
+
+def test_consultation_summary_card_rendering_all_three_states():
+    """Regression test: Recommended Product card handles insufficient, match, and no_match consistently."""
+    import json
+    import subprocess
+
+    node_script = """
+    import { renderConsultationSummary } from './app/static/js/customer/consultation-summary.js';
+
+    function createMockElement(id) {
+      return {
+        id,
+        style: { display: '' },
+        classList: {
+          classes: [],
+          add(c) { this.classes.push(c); },
+          remove(c) { this.classes = this.classes.filter(x => x !== c); },
+          contains(c) { return this.classes.includes(c); }
+        },
+        className: '',
+        textContent: '',
+        innerHTML: '',
+      };
+    }
+
+    function createElements() {
+      return {
+        matchStatusBadge: createMockElement('matchStatusBadge'),
+        matchSummaryText: createMockElement('matchSummaryText'),
+        reviewWarningPill: createMockElement('reviewWarningPill'),
+        knownReqsContainer: createMockElement('knownReqsContainer'),
+        missingInfoAccordion: createMockElement('missingInfoAccordion'),
+        missingInfoCount: createMockElement('missingInfoCount'),
+        missingInfoList: createMockElement('missingInfoList'),
+        compactProductEmpty: createMockElement('compactProductEmpty'),
+        compactProductContent: createMockElement('compactProductContent'),
+        compactProdName: createMockElement('compactProdName'),
+        compactProdKey: createMockElement('compactProdKey'),
+        compactProdMatchBadge: createMockElement('compactProdMatchBadge'),
+        compactProdExplanation: createMockElement('compactProdExplanation'),
+      };
+    }
+
+    // State 1: Insufficient Information
+    const el1 = createElements();
+    renderConsultationSummary({
+      overall_outcome: 'insufficient_information',
+      confirmed_recommendations: [],
+      potential_matches: [],
+      recommended_product: null,
+      summary_reasons: ['Please specify flow rate or viscosity.']
+    }, el1, {});
+
+    // State 2: Confirmed Match
+    const el2 = createElements();
+    renderConsultationSummary({
+      overall_outcome: 'match',
+      confirmed_recommendations: [{
+        product_name: 'Precision Ultrasonic Nozzle WNX-100',
+        catalog_key: 'WNX-100',
+        reasons: ['Process specifications verified.']
+      }],
+      recommended_product: {
+        product_name: 'Precision Ultrasonic Nozzle WNX-100',
+        catalog_key: 'WNX-100',
+        reasons: ['Process specifications verified.']
+      },
+      summary_reasons: ['Found 1 confirmed recommendation.']
+    }, el2, { flow_rate_ml_min: 10, viscosity_cp: 15 });
+
+    // State 3: No Match (Active requirements present, no eligible product)
+    const el3 = createElements();
+    renderConsultationSummary({
+      overall_outcome: 'no_match',
+      confirmed_recommendations: [],
+      potential_matches: [],
+      unmatched_candidates: [{ product_name: 'Standard Nozzle', status: 'no_match' }],
+      recommended_product: null,
+      summary_reasons: ['None of your company\\'s assigned catalog products meet the specified application and operational requirements.']
+    }, el3, {
+      application: 'pharmaceutical tablet coating',
+      fluid_description: 'water-based pharmaceutical coating solution',
+      viscosity_cp: 15,
+      flow_rate_ml_min: 10
+    });
+
+    console.log(JSON.stringify({
+      state1: {
+        emptyDisplay: el1.compactProductEmpty.style.display,
+        contentDisplay: el1.compactProductContent.style.display,
+        emptyText: el1.compactProductEmpty.textContent,
+        badgeText: el1.matchStatusBadge.textContent,
+      },
+      state2: {
+        emptyDisplay: el2.compactProductEmpty.style.display,
+        contentDisplay: el2.compactProductContent.style.display,
+        prodName: el2.compactProdName.textContent,
+        prodBadge: el2.compactProdMatchBadge.textContent,
+        badgeText: el2.matchStatusBadge.textContent,
+      },
+      state3: {
+        emptyDisplay: el3.compactProductEmpty.style.display,
+        contentDisplay: el3.compactProductContent.style.display,
+        prodName: el3.compactProdName.textContent,
+        prodBadge: el3.compactProdMatchBadge.textContent,
+        badgeClass: el3.compactProdMatchBadge.className,
+        badgeText: el3.matchStatusBadge.textContent,
+        summaryText: el3.matchSummaryText.textContent,
+        explanation: el3.compactProdExplanation.textContent,
+        reqsHtml: el3.knownReqsContainer.innerHTML,
+      }
+    }));
+    """
+
+    res = subprocess.run(
+        ["node", "--input-type=module", "-e", node_script],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    data = json.loads(res.stdout)
+
+    # State 1: Insufficient Information
+    assert data["state1"]["emptyDisplay"] == "block"
+    assert data["state1"]["contentDisplay"] == "none"
+    assert "Awaiting sufficient technical parameters" in data["state1"]["emptyText"]
+    assert data["state1"]["badgeText"] == "INSUFFICIENT INFORMATION"
+
+    # State 2: Match
+    assert data["state2"]["emptyDisplay"] == "none"
+    assert data["state2"]["contentDisplay"] == "block"
+    assert data["state2"]["prodName"] == "Precision Ultrasonic Nozzle WNX-100"
+    assert data["state2"]["prodBadge"] == "CONFIRMED MATCH"
+    assert data["state2"]["badgeText"] == "CONFIRMED MATCH"
+
+    # State 3: No Match (Crucial regression check)
+    assert data["state3"]["emptyDisplay"] == "none", "Waiting placeholder MUST be hidden on NO MATCH"
+    assert data["state3"]["contentDisplay"] == "block", "Product card MUST be displayed on NO MATCH"
+    assert data["state3"]["prodName"] == "No Compatible Nozzle"
+    assert data["state3"]["prodBadge"] == "NO MATCH"
+    assert "nomatch" in data["state3"]["badgeClass"]
+    assert data["state3"]["badgeText"] == "NO COMPATIBLE NOZZLE"
+    assert "None of your company's assigned catalog products" in data["state3"]["explanation"]
+    assert "Flow:</strong> 10 ml/min" in data["state3"]["reqsHtml"]
+    assert "Viscosity:</strong> 15 cP" in data["state3"]["reqsHtml"]
+

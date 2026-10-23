@@ -88,7 +88,10 @@ if STATIC_DIR.exists():
 @app.api_route("/app", methods=["GET", "HEAD"], include_in_schema=False)
 async def serve_frontend():
     if INDEX_HTML.exists():
-        return FileResponse(str(INDEX_HTML))
+        return FileResponse(
+            str(INDEX_HTML),
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
     return {"message": "WaveNxD AI Sales Representative API"}
 
 
@@ -96,9 +99,15 @@ async def serve_frontend():
 @app.api_route("/admin/", methods=["GET", "HEAD"], include_in_schema=False)
 async def serve_admin_portal():
     if ADMIN_HTML.exists():
-        return FileResponse(str(ADMIN_HTML))
+        return FileResponse(
+            str(ADMIN_HTML),
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
     if INDEX_HTML.exists():
-        return FileResponse(str(INDEX_HTML))
+        return FileResponse(
+            str(INDEX_HTML),
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
     return {"message": "WaveNxD Admin Portal"}
 
 
