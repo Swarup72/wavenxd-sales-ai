@@ -17,7 +17,7 @@ import { loadReviewsQueue, approveAccessRequest, rejectAccessRequest } from './t
 import { loadSupportConversations, inspectConversation } from './consultations.js';
 import { loadProviderStatus } from './provider-health.js';
 import { loadAuditLogs } from './audit-log.js';
-import { loadLeads, openLeadDetailModal, updateLeadStatus } from './leads.js';
+import { loadLeads, openLeadDetailModal, updateLeadStatus } from './leads.js?v=20261023c';
 
 // Cache of loaded admin entities
 const adminData = {

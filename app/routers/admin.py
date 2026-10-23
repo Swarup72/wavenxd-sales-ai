@@ -1382,6 +1382,12 @@ def build_admin_lead_response(lead_doc: dict) -> LeadResponse:
     c_at = lead_doc.get("created_at", utc_now())
     u_at = lead_doc.get("updated_at", utc_now())
     f_at = lead_doc.get("preferred_follow_up_at")
+
+    internal_notes = lead_doc.get("internal_notes")
+    if internal_notes is None and lead_doc.get("follow_up_notes") and not lead_doc.get("preferred_follow_up_at"):
+        internal_notes = lead_doc.get("follow_up_notes")
+
+    cust_notes = lead_doc.get("notes")
     return LeadResponse(
         id=str(lead_doc["_id"]),
         customer_user_id=str(lead_doc["customer_user_id"]),
@@ -1402,7 +1408,9 @@ def build_admin_lead_response(lead_doc: dict) -> LeadResponse:
         droplet_size_unit=lead_doc.get("droplet_size_unit", "µm"),
         spray_pattern=lead_doc.get("spray_pattern"),
         feed_configuration=lead_doc.get("feed_configuration"),
-        notes=lead_doc.get("notes"),
+        notes=cust_notes,
+        technical_notes=cust_notes,
+        internal_notes=internal_notes,
         recommended_product_ids=lead_doc.get("recommended_product_ids", []),
         recommendation_summary=lead_doc.get("recommendation_summary"),
         lead_source=lead_doc.get("lead_source", "customer_consultation"),
@@ -1472,7 +1480,8 @@ async def export_leads_csv(
         "Flow Rate (ml/min)",
         "Droplet Size (um)",
         "Recommended Products",
-        "Notes",
+        "Customer Notes",
+        "Internal Notes",
         "Follow-Up Date",
         "Follow-Up Notes",
         "Created At",
@@ -1495,6 +1504,7 @@ async def export_leads_csv(
             _sanitize_csv_cell(d.get("droplet_size_um", "")),
             _sanitize_csv_cell(", ".join(d.get("recommended_product_ids", []))),
             _sanitize_csv_cell(d.get("notes", "")),
+            _sanitize_csv_cell(d.get("internal_notes", "")),
             _sanitize_csv_cell(f_at.isoformat() if hasattr(f_at, "isoformat") else str(f_at) if f_at else ""),
             _sanitize_csv_cell(d.get("follow_up_notes", "")),
             _sanitize_csv_cell(c_at.isoformat() if hasattr(c_at, "isoformat") else str(c_at)),
@@ -1544,14 +1554,25 @@ async def update_admin_lead_stage(
 
     now = utc_now()
     updates: dict[str, Any] = {
-        "stage": body.stage,
         "updated_at": now,
     }
-    if body.notes is not None:
-        updates["follow_up_notes"] = body.notes.strip()
+    if body.stage is not None:
+        updates["stage"] = body.stage
+
+    # Handle internal engineering & sales notes without overwriting customer notes or follow_up_notes
+    notes_val = body.internal_notes if body.internal_notes is not None else body.notes
+    if notes_val is not None:
+        updates["internal_notes"] = notes_val.strip()
 
     await database.leads.update_one({"_id": lid}, {"$set": updates})
     updated_doc = await database.leads.find_one({"_id": lid})
+
+    audit_details = []
+    if body.stage is not None:
+        audit_details.append(f"stage to '{body.stage}'")
+    if notes_val is not None:
+        audit_details.append("internal notes updated")
+    details_str = f"Admin updated lead {', '.join(audit_details)}" if audit_details else "Admin updated lead"
 
     await record_audit_event(
         database=database,
@@ -1559,7 +1580,7 @@ async def update_admin_lead_stage(
         action="UPDATE_LEAD_STAGE",
         target_type="lead",
         target_id=lead_id,
-        details=f"Admin updated lead stage to '{body.stage}'",
+        details=details_str,
     )
 
     return build_admin_lead_response(updated_doc)

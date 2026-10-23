@@ -25,6 +25,7 @@ class Lead(MongoModel):
     spray_pattern: str | None = Field(default=None, max_length=100)
     feed_configuration: str | None = Field(default=None, max_length=100)
     notes: str | None = Field(default=None, max_length=2000)
+    internal_notes: str | None = Field(default=None, max_length=4000)
     recommended_product_ids: list[str] = Field(default_factory=list)
     recommendation_summary: str | None = Field(default=None, max_length=2000)
     lead_source: str = Field(default="customer_consultation", max_length=100)
@@ -45,8 +46,9 @@ class CreateLeadRequest(BaseModel):
 
 
 class UpdateLeadStageRequest(BaseModel):
-    stage: LeadStage
-    notes: str | None = Field(default=None, max_length=2000)
+    stage: LeadStage | None = None
+    notes: str | None = Field(default=None, max_length=4000)
+    internal_notes: str | None = Field(default=None, max_length=4000)
 
 
 class LeadResponse(BaseModel):
@@ -70,6 +72,8 @@ class LeadResponse(BaseModel):
     spray_pattern: str | None = None
     feed_configuration: str | None = None
     notes: str | None = None
+    technical_notes: str | None = None
+    internal_notes: str | None = None
     recommended_product_ids: list[str] = []
     recommendation_summary: str | None = None
     lead_source: str

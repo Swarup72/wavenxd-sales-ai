@@ -106,21 +106,21 @@ export async function openLeadDetailModal(leadId) {
 
     document.getElementById('adminLeadConvId').textContent = lead.conversation_id || '—';
     document.getElementById('adminLeadSource').textContent = lead.lead_source || '—';
-    document.getElementById('adminLeadFollowUpDt').textContent = lead.follow_up_datetime ? formatDate(lead.follow_up_datetime) : 'None';
-    document.getElementById('adminLeadFollowUpStatus').textContent = (lead.follow_up_status || 'none').toUpperCase();
+    document.getElementById('adminLeadFollowUpDt').textContent = lead.preferred_follow_up_at ? formatDate(lead.preferred_follow_up_at) : (lead.follow_up_datetime ? formatDate(lead.follow_up_datetime) : 'None');
+    document.getElementById('adminLeadFollowUpStatus').textContent = (lead.follow_up_status || (lead.preferred_follow_up_at ? 'scheduled' : 'none')).toUpperCase();
 
     document.getElementById('adminLeadApp').textContent = lead.application || '—';
-    document.getElementById('adminLeadMaterial').textContent = lead.coating_material || '—';
-    document.getElementById('adminLeadFlow').textContent = lead.flow_rate || '—';
-    document.getElementById('adminLeadVisc').textContent = lead.viscosity || '—';
-    document.getElementById('adminLeadDroplet').textContent = lead.droplet_size || '—';
-    document.getElementById('adminLeadCustNotes').textContent = lead.technical_notes || 'None';
+    document.getElementById('adminLeadMaterial').textContent = lead.coating_material || lead.fluid_description || '—';
+    document.getElementById('adminLeadFlow').textContent = lead.flow_rate_ml_min ? `${lead.flow_rate_ml_min} ml/min` : (lead.flow_rate || '—');
+    document.getElementById('adminLeadVisc').textContent = lead.viscosity_cp ? `${lead.viscosity_cp} cP` : (lead.viscosity || '—');
+    document.getElementById('adminLeadDroplet').textContent = lead.droplet_size_um ? `${lead.droplet_size_um} µm` : (lead.droplet_size || '—');
+    document.getElementById('adminLeadCustNotes').textContent = lead.notes || lead.technical_notes || 'None';
 
     document.getElementById('adminLeadProds').textContent = (lead.recommended_product_ids || []).join(', ') || 'None';
     document.getElementById('adminLeadRecSummary').textContent = lead.recommendation_summary || 'No summary available';
 
     document.getElementById('adminLeadStageSelect').value = lead.stage || 'new';
-    document.getElementById('adminLeadInternalNotes').value = lead.notes || '';
+    document.getElementById('adminLeadInternalNotes').value = lead.internal_notes || '';
 
     openModal(modal);
   } catch (err) {
@@ -132,6 +132,6 @@ export async function updateLeadStatus(leadId, stage, notes) {
   return await apiRequest(`/admin/leads/${leadId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ stage, notes }),
+    body: JSON.stringify({ stage, notes, internal_notes: notes }),
   });
 }

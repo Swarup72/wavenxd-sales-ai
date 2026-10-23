@@ -560,6 +560,8 @@ def build_lead_response(lead: Lead) -> LeadResponse:
         spray_pattern=lead.spray_pattern,
         feed_configuration=lead.feed_configuration,
         notes=lead.notes,
+        technical_notes=lead.notes,
+        internal_notes=None,  # STRICT PRIVACY: Internal engineering & sales notes NEVER exposed to customer!
         recommended_product_ids=lead.recommended_product_ids,
         recommendation_summary=lead.recommendation_summary,
         lead_source=lead.lead_source,
